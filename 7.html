@@ -1,0 +1,2354 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>বান্ধব সমিতি কালীপূজা - মেম্বার চাঁদা ও এজেন্ট কালেকশন ম্যানেজমেন্ট সিস্টেম</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Hind Siliguri & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS CDN for complete Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Firebase SDKs for Realtime Cloud Sync across all agent phones -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Hind Siliguri"', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                        },
+                        amberPuja: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom print styling for party slips */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printableReceiptCard, #printableReceiptCard * {
+                visibility: visible;
+            }
+            #printableReceiptCard {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                box-shadow: none;
+                border: 2px solid #000;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 9999px;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 0.3; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .live-pulse {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- ============================================== -->
+    <!-- 0. MANDATORY FIRST-TIME LOGIN SCREEN (GATEWAY)  -->
+    <!-- ============================================== -->
+    <div id="mandatoryLoginGateway" class="fixed inset-0 bg-gradient-to-br from-red-950 via-slate-900 to-indigo-950 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-white/20 relative">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-tr from-red-700 to-amber-500 text-white rounded-2xl flex items-center justify-center font-bold text-3xl shadow-lg mx-auto mb-3 border-2 border-amber-300">
+                    <i class="fa-solid fa-om"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-900 tracking-tight">বান্ধব সমিতি</h2>
+                <p class="text-xs font-bold text-amber-700 mt-0.5">শ্রী শ্রী শ্যামাপূজা (কালীপূজা) ২০২৬</p>
+                <p class="text-xs text-slate-500 mt-1">পোর্টালে প্রবেশের জন্য সঠিক রোল ও পাসওয়ার্ড দিন</p>
+            </div>
+
+            <!-- Login Tabs -->
+            <div class="flex border-b border-slate-200 mb-5 text-xs font-bold">
+                <button id="gateTabAdminBtn" onclick="switchGatewayTab('ADMIN')" class="flex-1 py-2.5 text-center border-b-2 border-brand-600 text-brand-700 font-black">
+                    <i class="fa-solid fa-shield-halved mr-1"></i> ক্যাশিয়ার / অ্যাডমিন
+                </button>
+                <button id="gateTabAgentBtn" onclick="switchGatewayTab('AGENT')" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-500 font-bold">
+                    <i class="fa-solid fa-user-tag mr-1"></i> সংগ্রাহক এজেন্ট
+                </button>
+            </div>
+
+            <!-- Admin Login Box -->
+            <div id="gateBoxAdmin" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">অ্যাডমিন সিক্রেট পাসওয়ার্ড *</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3 top-3 text-slate-400 text-sm"></i>
+                        <input type="password" id="gateInputAdminPass" placeholder="পাসওয়ার্ড লিখুন (admin123)" 
+                            class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none font-mono">
+                    </div>
+                </div>
+                <button onclick="handleGatewayAdminLogin()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> অ্যাডমিন হিসেবে প্রবেশ করুন
+                </button>
+            </div>
+
+            <!-- Agent Login Box -->
+            <div id="gateBoxAgent" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">আপনার নাম ও বুক নম্বর নির্বাচন করুন *</label>
+                    <select id="gateInputAgentSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-brand-500 outline-none">
+                        <!-- Populated dynamically via JS -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">এজেন্ট সিক্রেট পিন / পাসওয়ার্ড *</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-key absolute left-3 top-3 text-slate-400 text-sm"></i>
+                        <input type="password" id="gateInputAgentPin" placeholder="যেমন: agent01, agent02..." 
+                            class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none font-mono">
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1">* প্রতিটি এজেন্টের আলাদা পাসওয়ার্ড। নিজের পাসওয়ার্ড ছাড়া অন্য কেউ ঢুকতে পারবে না।</p>
+                </div>
+                <button onclick="handleGatewayAgentLogin()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> এজেন্ট পোর্টালে প্রবেশ করুন
+                </button>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-100 text-center text-[11px] text-slate-400">
+                🔒 ১০০% সুরক্ষিত ও ক্লাউড সিনক্রোনাইজড কালেকশন প্ল্যাটফর্ম
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MAIN APPLICATION (Shown ONLY after Login)      -->
+    <!-- ============================================== -->
+    <div id="authenticatedAppContainer" class="hidden flex-col min-h-screen">
+
+        <!-- Top Navigation & Role Switcher Bar -->
+        <header class="bg-gradient-to-r from-red-800 via-brand-800 to-amber-700 text-white shadow-lg sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16 sm:h-20">
+                    <!-- Brand Title & Puja Badge -->
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white text-red-700 rounded-full flex items-center justify-center font-bold text-xl sm:text-2xl shadow-inner border-2 border-amber-300">
+                            <i class="fa-solid fa-om"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h1 class="text-lg sm:text-2xl font-bold tracking-tight text-white">বান্ধব সমিতি</h1>
+                                <span id="badgeFiscalYearDisplay" class="bg-amber-400 text-red-950 font-bold text-xs px-2 py-0.5 rounded-full shadow">কালীপূজা ২০২৬</span>
+                            </div>
+                            <p class="text-xs text-red-100 hidden sm:block">ক্লাউড সিনক্রোনাইজড চাঁদা সংগ্রহ ও মাল্টি-এজেন্ট অডিট সিস্টেম</p>
+                        </div>
+                    </div>
+
+                    <!-- Right Side Controls & Live Sync Indicator -->
+                    <div class="flex items-center space-x-2 sm:space-x-3">
+                        <!-- Cloud Status Badge -->
+                        <div onclick="openCloudModal()" class="cursor-pointer bg-black/30 hover:bg-black/40 border border-white/20 rounded-xl px-2.5 py-1.5 flex items-center gap-2 text-xs transition" title="ক্লাউড কানেকশন স্ট্যাটাস দেখুন">
+                            <span id="cloudStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 live-pulse"></span>
+                            <span id="cloudStatusText" class="hidden md:inline font-medium text-emerald-200">ক্লাউড সিঙ্ক সক্রিয়</span>
+                            <i class="fa-solid fa-cloud text-amber-300"></i>
+                        </div>
+
+                        <!-- Current Role & Logout Button -->
+                        <div class="bg-red-900/60 backdrop-blur-sm border border-red-400/30 rounded-xl px-3 py-1.5 flex items-center space-x-2">
+                            <div class="text-right">
+                                <span id="currentRoleDisplay" class="text-xs sm:text-sm font-semibold text-white flex items-center justify-end gap-1.5">
+                                    <i class="fa-solid fa-shield-halved text-amber-400 text-xs"></i> প্রধান অ্যাডমিন
+                                </span>
+                            </div>
+                            <button onclick="performLogout()" class="bg-red-700 hover:bg-red-800 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow">
+                                <i class="fa-solid fa-right-from-bracket"></i> লগআউট
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="bg-red-900/90 border-t border-red-700/50">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <nav class="flex space-x-1 sm:space-x-3 overflow-x-auto py-2 custom-scrollbar text-sm" id="mainNavigationTabs">
+                        <!-- Dynamically populated / switched -->
+                    </nav>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Container Content -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5">
+            
+            <!-- Live System Notice & Quick Alert Banner -->
+            <div id="capacityAlertBanner" class="hidden mb-4 bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-lg shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2 text-amber-900 text-sm font-medium">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg"></i>
+                        <span id="capacityAlertText">সতর্কবার্তা: কয়েকটি এজেন্ট বই নির্ধারিত ধারণক্ষমতা অতিক্রম করেছে।</span>
+                    </div>
+                    <button onclick="document.getElementById('capacityAlertBanner').classList.add('hidden')" class="text-amber-700 hover:text-amber-900 text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION: DASHBOARD (ADMIN & SUMMARY) -->
+            <div id="tab-dashboard" class="space-y-6">
+                <!-- Year Rollover & Top Bar -->
+                <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl shadow flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <span class="text-xs bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-full font-bold">লাইভ সেশন কন্ট্রোল</span>
+                        <h3 class="text-lg sm:text-xl font-bold mt-1 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-days text-amber-400"></i>
+                            <span id="sessionYearText">২০২৬ সালের পূজা সেশন</span>
+                        </h3>
+                        <p class="text-xs text-slate-300 mt-0.5">ফিল্ডে এজেন্টরা মোবাইল দিয়ে চাঁদা তুললে রিয়েল-টাইমে এখানে যুক্ত হবে।</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="executeYearRollover()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow ring-2 ring-amber-300">
+                            <i class="fa-solid fa-forward"></i> পরবর্তী বছর শুরু করুন
+                        </button>
+                        <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-file-excel"></i> এক্সেল আপলোড
+                            <input type="file" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
+                        </label>
+                        <button onclick="downloadSampleExcel()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-download"></i> স্যাম্পল
+                        </button>
+                        <button onclick="openPublishGuideModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-globe"></i> কিভাবে সবার মোবাইলে দেবেন?
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Key Metric Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-500 text-xs font-semibold">
+                            <span>মোট সদস্য সংখ্যা</span>
+                            <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-users"></i></div>
+                        </div>
+                        <div class="mt-2">
+                            <span id="statTotalMembers" class="text-2xl font-bold text-slate-800">0</span>
+                            <span class="text-xs text-slate-500 block">সকল বুক মিলিয়ে</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-500 text-xs font-semibold">
+                            <span>মোট টার্গেট</span>
+                            <div class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-bullseye"></i></div>
+                        </div>
+                        <div class="mt-2">
+                            <span id="statTarget2026" class="text-2xl font-bold text-amber-600">₹0</span>
+                            <span class="text-xs text-slate-500 block">ধার্য্যকৃত মোট চাঁদা</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-500 text-xs font-semibold">
+                            <span>জমা পড়েছে (এপ্রুভড)</span>
+                            <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-circle-check"></i></div>
+                        </div>
+                        <div class="mt-2">
+                            <span id="statTotalApproved" class="text-2xl font-bold text-emerald-600">₹0</span>
+                            <span id="statCollectionRate" class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">0% আদায়</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-500 text-xs font-semibold">
+                            <span>ফিল্ড কালেকশন (অপেক্ষারত)</span>
+                            <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        </div>
+                        <div class="mt-2">
+                            <span id="statTotalPending" class="text-2xl font-bold text-indigo-600">₹0</span>
+                            <span id="statPendingCountBadge" class="text-xs text-indigo-700 font-medium">০ টি রসিদ অপেক্ষায়</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between col-span-2 lg:col-span-1">
+                        <div class="flex items-center justify-between text-slate-500 text-xs font-semibold">
+                            <span>বকেয়া (ডিউ) চাঁদা</span>
+                            <div class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center"><i class="fa-solid fa-circle-exclamation"></i></div>
+                        </div>
+                        <div class="mt-2">
+                            <span id="statTotalDue" class="text-2xl font-bold text-rose-600">₹0</span>
+                            <span class="text-xs text-rose-500 block">বাকি সদস্যদের থেকে</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agent Performance & Book Matrix -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50/70">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-book-open text-brand-600"></i> এজেন্ট বই অনুসারে কালেকশন ও বুক স্ট্যাটাস
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">প্রত্যেক এজেন্টের বরাদ্দকৃত মেম্বার সংখ্যা, টার্গেট, এপ্রুভড কালেকশন এবং বকেয়া তথ্য</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="openAgentModal()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition">
+                                <i class="fa-solid fa-user-plus"></i> নতুন এজেন্ট যোগ করুন
+                            </button>
+                            <button onclick="openMemberModal()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition">
+                                <i class="fa-solid fa-user-check"></i> নতুন মেম্বার যোগ করুন
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead class="bg-slate-100/75 text-slate-600 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3 sm:px-4">বুক নং</th>
+                                    <th class="p-3 sm:px-4">এজেন্টের নাম</th>
+                                    <th class="p-3 sm:px-4 text-center">মেম্বার সংখ্যা</th>
+                                    <th class="p-3 sm:px-4 text-right">টার্গেট</th>
+                                    <th class="p-3 sm:px-4 text-right">জমা (এপ্রুভড)</th>
+                                    <th class="p-3 sm:px-4 text-right">অপেক্ষারত</th>
+                                    <th class="p-3 sm:px-4 text-right">বাকি (Due)</th>
+                                    <th class="p-3 sm:px-4 text-center">অগ্রগতি</th>
+                                    <th class="p-3 sm:px-4 text-center">অ্যাকশন</th>
+                                </tr>
+                            </thead>
+                            <tbody id="agentPerformanceTableBody" class="divide-y divide-slate-100">
+                                <!-- Populated dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: COMPLETE REPORTING & SEARCH CENTER -->
+            <div id="tab-reports" class="space-y-5 hidden">
+                <!-- Filter & Search Toolbar -->
+                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-brand-600"></i> সম্পূর্ণ অডিট ও কাস্টম রিপোর্ট সেন্টার
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">যেকোনো এজেন্টের বকেয়া বা কালেকশন এক ক্লিকে আলাদা করে দেখুন এবং এক্সেল ফাইল ডাউনলোড করুন।</p>
+                        </div>
+                        <button onclick="exportFilteredReportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-2 shadow transition">
+                            <i class="fa-solid fa-file-excel text-sm"></i> এই রিপোর্টটি এক্সেলে ডাউনলোড করুন
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                        <!-- Search Bar -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">সদস্যের নাম / ফোন / বুক দিয়ে লাইভ সার্চ:</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                                <input type="text" id="reportSearchInput" oninput="handleReportFilterChange()" placeholder="নাম বা মোবাইল নম্বর লিখুন..." 
+                                    class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none transition">
+                            </div>
+                        </div>
+
+                        <!-- Agent Dropdown -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">এজেন্ট নির্বাচন (বুক ড্রপডাউন):</label>
+                            <select id="reportAgentDropdown" onchange="handleReportFilterChange()" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none">
+                                <option value="ALL">-- সমস্ত এজেন্ট ও বুক --</option>
+                            </select>
+                        </div>
+
+                        <!-- Status Dropdown -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">পেমেন্ট স্ট্যাটাস ফিল্টার:</label>
+                            <select id="reportStatusDropdown" onchange="handleReportFilterChange()" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500 outline-none">
+                                <option value="ALL">সকল স্ট্যাটাস (DUE + PAID)</option>
+                                <option value="DUE">শুধুমাত্র বকেয়া (DUE মেম্বার)</option>
+                                <option value="PAID">শুধুমাত্র পরিশোধিত (PAID মেম্বার)</option>
+                                <option value="PENDING">অনুমোদনের অপেক্ষায় (PENDING)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Realtime Filter Summary Metric Chips -->
+                    <div class="pt-3 border-t border-slate-100 flex flex-wrap gap-2 text-xs font-mono">
+                        <span class="bg-slate-100 text-slate-800 px-3 py-1 rounded-lg font-bold">মোট পাওয়া গেছে: <b id="repCountMembers" class="font-sans">0</b> জন</span>
+                        <span class="bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1 rounded-lg font-bold">টার্গেট: <b id="repTotalTarget">₹0</b></span>
+                        <span class="bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-lg font-bold">আদায়: <b id="repTotalPaid">₹0</b></span>
+                        <span class="bg-rose-50 text-rose-900 border border-rose-200 px-3 py-1 rounded-lg font-bold">অবশিষ্ট ডিউ: <b id="repTotalDue">₹0</b></span>
+                    </div>
+                </div>
+
+                <!-- Detailed Filtered Member Table -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs text-slate-600 font-semibold">
+                        <span>ফিল্টার অনুযায়ী সদস্য তালিকা</span>
+                        <span id="reportActiveFilterText" class="text-[11px] text-brand-700">সকল বুক • সকল স্ট্যাটাস</span>
+                    </div>
+                    <div class="overflow-x-auto max-h-[500px] custom-scrollbar">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead class="bg-slate-100 text-slate-700 uppercase text-[11px] font-bold sticky top-0 z-10 border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3">SL</th>
+                                    <th class="p-3">সদস্যের নাম</th>
+                                    <th class="p-3">মোবাইল নং</th>
+                                    <th class="p-3">বুক ও এজেন্ট</th>
+                                    <th class="p-3 text-right">পূর্ববর্তী চাঁদা</th>
+                                    <th class="p-3 text-right">চলতি টার্গেট</th>
+                                    <th class="p-3 text-right">আদায়কৃত</th>
+                                    <th class="p-3 text-right">বকেয়া (DUE)</th>
+                                    <th class="p-3 text-center">স্ট্যাটাস</th>
+                                    <th class="p-3 text-center">অ্যাকশন</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody" class="divide-y divide-slate-100">
+                                <!-- Populated dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: MEMBERS FINAL LIST (ALLOTMENT & FILTER) -->
+            <div id="tab-members" class="space-y-4 hidden">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row items-center justify-between gap-3">
+                    <div class="relative w-full lg:w-96">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="memberSearchInput" onkeyup="filterMemberList()" placeholder="মেম্বারের নাম বা মোবাইল দিয়ে খুঁজুন..." 
+                            class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition">
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+                        <select id="agentFilterSelect" onchange="filterMemberList()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500">
+                            <option value="ALL">সকল এজেন্ট বই</option>
+                        </select>
+
+                        <select id="statusFilterSelect" onchange="filterMemberList()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500">
+                            <option value="ALL">সকল স্ট্যাটাস</option>
+                            <option value="PAID">পরিশোধিত (Approved Paid)</option>
+                            <option value="PENDING">অপেক্ষারত (Pending Approval)</option>
+                            <option value="DUE">বকেয়া (Unpaid / Due)</option>
+                        </select>
+
+                        <button onclick="openMemberModal()" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-xl flex items-center gap-2 shadow transition">
+                            <i class="fa-solid fa-user-plus"></i> নতুন মেম্বার
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs text-slate-600">
+                        <div>
+                            মোট প্রদর্শিত মেম্বার: <span id="filteredMembersCount" class="font-bold text-slate-900">0</span> জন
+                        </div>
+                        <div class="text-[11px] text-slate-500">
+                            * এজেন্ট রি-অ্যালটমেন্ট সরাসরি ড্রপডাউন থেকেই করা যাবে
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto max-h-[600px] custom-scrollbar">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead class="bg-slate-100 text-slate-700 uppercase text-[11px] font-bold sticky top-0 z-10 border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3">ক্রমিক নং</th>
+                                    <th class="p-3">মেম্বারের নাম</th>
+                                    <th class="p-3">মোবাইল নং</th>
+                                    <th class="p-3">এজেন্ট / বুক</th>
+                                    <th class="p-3 text-right">পূর্ববর্তী টাকা</th>
+                                    <th class="p-3 text-right">চলতি ধার্য্য</th>
+                                    <th class="p-3 text-right">জমা টাকা</th>
+                                    <th class="p-3 text-center">স্ট্যাটাস</th>
+                                    <th class="p-3 text-center">অ্যাকশন ও রসিদ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finalMemberListTableBody" class="divide-y divide-slate-100">
+                                <!-- Populated via Javascript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: AGENT BOOKS & CAPACITY ALLOTMENT -->
+            <div id="tab-books" class="space-y-6 hidden">
+                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-book text-brand-600"></i> এজেন্ট বই ক্যাপাসিটি ও মেম্বার অ্যালটমেন্ট কন্ট্রোল
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">
+                            প্রতিটি এজেন্ট বইয়ে কতজন সদস্য থাকবে (ডিফল্ট ২৫ বা ৩০) তা সেট করুন। নির্দিষ্ট সীমার অতিরিক্ত হলে সিস্টেম স্বয়ংক্রিয় সতর্কতা দেবে।
+                        </p>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl">
+                        <label class="text-xs font-bold text-amber-900">বুক প্রতি স্ট্যান্ডার্ড ধারণক্ষমতা:</label>
+                        <select id="standardCapacitySelect" onchange="updateSystemCapacity(this.value)" class="bg-white border border-amber-300 rounded-lg px-2.5 py-1 text-xs font-bold text-amber-900 shadow-sm">
+                            <option value="25">২৫ জন মেম্বার</option>
+                            <option value="30">৩০ জন মেম্বার</option>
+                            <option value="35">৩৫ জন মেম্বার</option>
+                            <option value="40">৪০ জন মেম্বার</option>
+                            <option value="50">৫০ জন মেম্বার</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="agentBooksGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- Dynamically Rendered Agent Books -->
+                </div>
+            </div>
+
+            <!-- SECTION: CASHIER PAYMENT APPROVAL QUEUE -->
+            <div id="tab-approvals" class="space-y-4 hidden">
+                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-stamp text-indigo-600"></i> পেমেন্ট অনুমোদন কিউ (ক্যাশিয়ার লাইভ ডেস্ক)
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">
+                            এজেন্টরা মোবাইল থেকে চাঁদা সংগ্রহ রিপোর্ট করলে সাথে সাথে এখানে আসবে। ক্যাশিয়ার হাতে টাকা পাওয়ার পর এপ্রুভ করবেন।
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span id="approvalCounterBadge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-xl">
+                            ০ টি আবেদন বাকি
+                        </span>
+                        <button onclick="approveAllPendingCollections()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow transition">
+                            সবগুলো একসাথে এপ্রুভ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ADDED: APPROVAL QUEUE SEARCH & FILTERS -->
+                <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        <input type="text" id="approvalSearchInput" oninput="renderApprovalsQueue()" placeholder="মেম্বারের নাম, রসিদ বা এজেন্ট দিয়ে খুঁজুন..." 
+                            class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition">
+                    </div>
+                    <div>
+                        <select id="approvalAgentFilter" onchange="renderApprovalsQueue()" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="ALL">সকল এজেন্ট বই</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="approvalMethodFilter" onchange="renderApprovalsQueue()" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="ALL">সকল পেমেন্ট মাধ্যম</option>
+                            <option value="CASH">শুধুমাত্র CASH (নগদ)</option>
+                            <option value="UPI">শুধুমাত্র UPI / QR</option>
+                            <option value="BANK">শুধুমাত্র BANK (ব্যাংক)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead class="bg-slate-100 text-slate-700 uppercase text-[11px] font-bold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3">তারিখ ও সময়</th>
+                                    <th class="p-3">রসিদ ট্র্যাকিং</th>
+                                    <th class="p-3">এজেন্টের নাম ও বুক</th>
+                                    <th class="p-3">মেম্বারের নাম</th>
+                                    <th class="p-3 text-right">আদায়ের পরিমাণ</th>
+                                    <th class="p-3 text-center">পেমেন্ট মেথড</th>
+                                    <th class="p-3 text-center">সিদ্ধান্ত (Action)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="approvalsTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamically populated approvals -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: AGENTS & PASSWORDS MANAGEMENT -->
+            <div id="tab-agents-mgmt" class="space-y-4 hidden">
+                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-user-shield text-brand-600"></i> এজেন্ট তালিকা ও সিক্রেট লগইন পাসওয়ার্ড
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">প্রতিটি এজেন্টের গোপন পাসওয়ার্ড ও বুক নিয়ন্ত্রণ করুন।</p>
+                    </div>
+                    <button onclick="openAgentModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-user-plus"></i> নতুন এজেন্ট তৈরি করুন
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead class="bg-slate-100 text-slate-700 uppercase text-[11px] font-bold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3">বুক নম্বর</th>
+                                    <th class="p-3">এজেন্টের নাম</th>
+                                    <th class="p-3">মোবাইল নম্বর</th>
+                                    <th class="p-3">লগইন পাসওয়ার্ড (গোপন পিন)</th>
+                                    <th class="p-3 text-center">বরাদ্দকৃত মেম্বার</th>
+                                    <th class="p-3 text-center">অ্যাকশন</th>
+                                </tr>
+                            </thead>
+                            <tbody id="agentsMgmtTableBody" class="divide-y divide-slate-100">
+                                <!-- Populated with agents -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: AGENT DEDICATED VIEW (Shown when logged in as Agent) -->
+            <div id="tab-agent-view" class="space-y-5 hidden">
+                <div class="bg-gradient-to-r from-slate-900 to-brand-950 text-white p-5 rounded-2xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-14 h-14 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-2xl shadow-inner">
+                            <i class="fa-solid fa-book-bookmark"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 id="agentViewName" class="text-xl font-bold text-white">এজেন্টের নাম</h2>
+                                <span id="agentViewBookNo" class="bg-amber-400 text-red-950 text-xs font-bold px-2.5 py-0.5 rounded-full">বুক নং: ০১</span>
+                            </div>
+                            <p class="text-xs text-slate-300 mt-1" id="agentViewSummary">
+                                বরাদ্দকৃত মেম্বার: ২৫ জন | টার্গেট: ₹৫,০০০ | আদায়: ₹২,৫০০
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button onclick="openAgentSelfMemberAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-user-plus"></i> আমার বুকে নতুন মেম্বার যুক্ত করুন
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Agent Book Member Collection Table -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-brand-600"></i> আপনার বরাদ্দকৃত মেম্বার তালিকা ও চাঁদা সংগ্রহ ফর্ম
+                        </h3>
+                        <input type="text" id="agentMemberSearch" onkeyup="renderAgentMembersList()" placeholder="আপনার মেম্বারদের খুঁজুন..." 
+                            class="text-xs px-3 py-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead class="bg-slate-100 text-slate-700 uppercase text-[11px] font-bold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3">ক্রমিক</th>
+                                    <th class="p-3">মেম্বারের নাম</th>
+                                    <th class="p-3">মোবাইল নং</th>
+                                    <th class="p-3 text-right">পূর্ববর্তী টাকা</th>
+                                    <th class="p-3 text-right">চলতি ধার্য্য</th>
+                                    <th class="p-3 text-center">স্ট্যাটাস</th>
+                                    <th class="p-3 text-center">চাঁদা সংগ্রহ / রসিদ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="agentBookMembersTableBody" class="divide-y divide-slate-100">
+                                <!-- Populated with agent's members -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-auto">
+            <p>বান্ধব সমিতি কালীপূজা পরিচালনা কমিটি &copy; সর্বস্বত্ব সংরক্ষিত | সুরক্ষিত অনলাইন ক্লাউড সিস্টেম</p>
+        </footer>
+
+    </div> <!-- End of authenticatedAppContainer -->
+
+    <!-- ============================================== -->
+    <!-- MODALS & POPUPS                               -->
+    <!-- ============================================== -->
+
+    <!-- 2. Subscription Collection Modal (Agent / Admin Collects Money) -->
+    <div id="collectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <span class="text-[11px] font-bold text-brand-600 uppercase">চাঁদা আদায় রসিদ তৈরি</span>
+                    <h3 id="collectModalMemberName" class="font-bold text-slate-800 text-lg">মেম্বারের নাম</h3>
+                </div>
+                <button onclick="closeCollectModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="collectSubscriptionForm" onsubmit="handleCollectionSubmit(event)" class="mt-4 space-y-4">
+                <input type="hidden" id="collectMemberId">
+
+                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl text-xs">
+                    <div>
+                        <span class="text-slate-500 block">পূর্ববর্তী বছরের চাঁদা:</span>
+                        <span id="collectModalPrevAmount" class="font-bold text-slate-800 text-sm">₹0</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">চলতি টার্গেট চাঁদা:</span>
+                        <span id="collectModalTargetAmount" class="font-bold text-amber-600 text-sm">₹0</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">আদায়কৃত টাকার পরিমাণ (₹) *</label>
+                    <input type="number" id="collectInputAmount" required min="10" 
+                        class="w-full p-2.5 text-lg font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">পেমেন্টের মাধ্যম</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="border border-slate-200 rounded-lg p-2 text-center cursor-pointer hover:bg-slate-50 text-xs font-semibold">
+                            <input type="radio" name="paymentMethod" value="CASH" checked class="mr-1"> নগদ (Cash)
+                        </label>
+                        <label class="border border-slate-200 rounded-lg p-2 text-center cursor-pointer hover:bg-slate-50 text-xs font-semibold">
+                            <input type="radio" name="paymentMethod" value="UPI" class="mr-1"> UPI / QR
+                        </label>
+                        <label class="border border-slate-200 rounded-lg p-2 text-center cursor-pointer hover:bg-slate-50 text-xs font-semibold">
+                            <input type="radio" name="paymentMethod" value="BANK" class="mr-1"> ব্যাংক
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">মন্তব্য বা ট্রানজাকশন আইডি (ঐচ্ছিক)</label>
+                    <input type="text" id="collectNotes" placeholder="নোট বা রেফারেন্স..." class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs">
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-xl text-sm transition shadow-md flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i> চাঁদা জমা ও অনুমোদনের জন্য পাঠান
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Official Printable Member Slip / Receipt Modal -->
+    <div id="receiptModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 no-print">
+                <span class="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                    <i class="fa-solid fa-receipt text-brand-600"></i> অফিসিয়াল মেম্বার চাঁদা রসিদ
+                </span>
+                <div class="flex items-center space-x-2">
+                    <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-print"></i> প্রিন্ট রসিদ
+                    </button>
+                    <button onclick="shareReceiptWhatsApp()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow">
+                        <i class="fa-brands fa-whatsapp"></i> শেয়ার
+                    </button>
+                    <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-slate-600 ml-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+            </div>
+
+            <!-- The Printable Receipt Slip -->
+            <div id="printableReceiptCard" class="mt-4 border-2 border-red-800 rounded-xl p-5 bg-gradient-to-b from-amber-50/40 via-white to-red-50/20 relative">
+                <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                    <i class="fa-solid fa-om text-9xl text-red-900"></i>
+                </div>
+
+                <div class="text-center border-b-2 border-red-800 pb-3">
+                    <div class="flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-om text-red-700 text-xl"></i>
+                        <h2 class="text-2xl font-black text-red-900 tracking-wide">বান্ধব সমিতি</h2>
+                        <i class="fa-solid fa-om text-red-700 text-xl"></i>
+                    </div>
+                    <p class="text-xs font-bold text-amber-900 mt-0.5" id="slipFiscalHeader">শ্রী শ্রী শ্যামাপূজা (কালীপূজা) ২০২৬</p>
+                    <p class="text-[11px] text-slate-600">মেম্বার চাঁদা প্রাপ্তি রসিদ পত্র</p>
+                </div>
+
+                <div class="flex justify-between items-center text-xs mt-3 text-slate-700 font-medium">
+                    <div>রসিদ নং: <span id="slipReceiptNo" class="font-bold text-red-900 font-mono">BSKP-2026-000</span></div>
+                    <div>তারিখ: <span id="slipDate" class="font-bold font-mono"></span></div>
+                </div>
+
+                <div class="mt-4 bg-white/80 border border-red-100 rounded-lg p-3 space-y-2 text-xs">
+                    <div class="flex justify-between border-b border-dashed border-slate-200 pb-1.5">
+                        <span class="text-slate-500">সম্মানীয় মেম্বারের নাম:</span>
+                        <span id="slipMemberName" class="font-bold text-slate-900 text-sm">মেম্বার নাম</span>
+                    </div>
+                    <div class="flex justify-between border-b border-dashed border-slate-200 pb-1.5">
+                        <span class="text-slate-500">মোবাইল নং:</span>
+                        <span id="slipMemberMobile" class="font-medium text-slate-800 font-mono"></span>
+                    </div>
+                    <div class="flex justify-between border-b border-dashed border-slate-200 pb-1.5">
+                        <span class="text-slate-500">সংগ্রাহক (এজেন্ট) ও বুক নং:</span>
+                        <span id="slipAgentAndBook" class="font-bold text-brand-800"></span>
+                    </div>
+                    <div class="flex justify-between border-b border-dashed border-slate-200 pb-1.5">
+                        <span class="text-slate-500">পূর্ববর্তী বছরের চাঁদা:</span>
+                        <span id="slip2025Amount" class="font-medium text-slate-700">₹0</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-1">
+                        <span class="text-slate-800 font-bold text-sm">পরিশোধিত অর্থ:</span>
+                        <span id="slipPaidAmount" class="font-black text-xl text-emerald-700 font-mono">₹0.00</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex justify-between items-center px-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[11px] text-slate-600">পেমেন্ট মেথড:</span>
+                        <span id="slipPaymentMethod" class="bg-slate-100 border border-slate-300 text-slate-800 text-[11px] font-bold px-2 py-0.5 rounded">CASH</span>
+                    </div>
+                    <div class="border-2 border-emerald-600 text-emerald-700 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest transform -rotate-2">
+                        ✓ APPROVED & PAID
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-4 flex justify-between text-center text-xs text-slate-600">
+                    <div>
+                        <div class="w-28 border-b border-slate-400 mb-1 mx-auto"></div>
+                        <span>সংগ্রাহক (এজেন্ট) স্বাক্ষর</span>
+                    </div>
+                    <div>
+                        <div class="w-28 border-b border-slate-400 mb-1 mx-auto"></div>
+                        <span>ক্যাশিয়ার / সেক্রেটারি</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 4. Add Member Modal -->
+    <div id="memberModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-brand-600"></i> নতুন মেম্বার যুক্ত ও বুক বরাদ্দ
+                </h3>
+                <button onclick="closeMemberModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="addMemberForm" onsubmit="handleSaveMember(event)" class="mt-4 space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">মেম্বারের নাম *</label>
+                    <input type="text" id="newMemberName" required placeholder="উদাঃ তপন দেবনাথ" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">মোবাইল নম্বর / WhatsApp</label>
+                    <input type="tel" id="newMemberPhone" placeholder="9876543210" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">পূর্ববর্তী চাঁদা (₹)</label>
+                        <input type="number" id="newMember2025" value="300" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">চলতি টার্গেট (₹) *</label>
+                        <input type="number" id="newMember2026" required value="300" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-amber-700">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">এজেন্ট নির্বাচন ও বুক বরাদ্দ *</label>
+                    <select id="newMemberAgentId" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+                        <!-- Populated with agents -->
+                    </select>
+                </div>
+
+                <div class="pt-3">
+                    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-xl text-sm transition shadow flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-save"></i> মেম্বার সংরক্ষণ করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. Add Agent Modal -->
+    <div id="agentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-address-book text-brand-600"></i> নতুন এজেন্ট ও বুক তৈরি করুন
+                </h3>
+                <button onclick="closeAgentModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="addAgentForm" onsubmit="handleSaveAgent(event)" class="mt-4 space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">এজেন্টের পূর্ণ নাম *</label>
+                    <input type="text" id="newAgentName" required placeholder="উদাঃ অর্ণব সাধু" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">বুক নম্বর *</label>
+                        <input type="text" id="newAgentBookNo" required placeholder="Book-14" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">ফোন নম্বর</label>
+                        <input type="tel" id="newAgentPhone" placeholder="98765..." class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">লগইন গোপন পাসওয়ার্ড (পিন) *</label>
+                    <input type="text" id="newAgentPin" required placeholder="যেমন: agent14" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-red-700 font-bold">
+                    <p class="text-[10px] text-slate-400 mt-1">এজেন্ট এই পিন দিয়ে তার মোবাইলে লগইন করবে।</p>
+                </div>
+
+                <div class="pt-3">
+                    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-xl text-sm transition shadow flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check"></i> এজেন্ট সংরক্ষণ করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6. Cloud Settings Modal -->
+    <div id="cloudModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-cloud text-indigo-600"></i> লাইভ ক্লাউড ডেটাবেস কনফিগারেশন
+                </h3>
+                <button onclick="closeCloudModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="mt-4 space-y-3 text-xs">
+                <p class="text-slate-600">
+                    এজেন্টদের মোবাইল থেকে রিয়েল-টাইম সিঙ্ক করার জন্য আপনার <b>Firebase Realtime Database</b> বা <b>Google Sheets App Script Webhook</b> লিঙ্ক এখানে দিয়ে দিন। (ফাঁকা রাখলে স্বয়ংক্রিয়ভাবে লোকাল ক্লাউড মোডে চলবে)।
+                </p>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Firebase Database URL / Webhook Endpoint:</label>
+                    <input type="text" id="inputFirebaseDbUrl" placeholder="https://your-club-default-rtdb.firebaseio.com" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs">
+                </div>
+
+                <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                    <span class="font-bold text-amber-900 block mb-1"><i class="fa-solid fa-lightbulb"></i> গুগল সাইটস বা অনলাইনে দেওয়ার নিয়ম:</span>
+                    <p class="text-amber-800 text-[11px] leading-relaxed">
+                        এই ফাইলটি সরাসরি GitHub Pages বা Netlify তে ফ্রি হোস্ট করে লিঙ্কটি এজেন্টদের হোয়াটসঅ্যাপ গ্রুপে দিয়ে দিন। প্রতিটি এজেন্ট তার নিজের বুক ও পিন দিয়ে ঢুকে চাঁদা তুললেই লাইভ আপনার অ্যাডমিন স্ক্রিনে জমা পড়বে!
+                    </p>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2">
+                    <button onclick="saveCloudConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow">
+                        কনফিগারেশন সেভ করুন
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. How to Publish & Share Guide Modal -->
+    <div id="publishGuideModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-circle-question text-emerald-600"></i> কিভাবে সবার মোবাইলে এই সফটওয়্যারটি দেবেন?
+                </h3>
+                <button onclick="closePublishGuideModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="mt-4 space-y-4 text-xs text-slate-700">
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <h4 class="font-bold text-sm text-slate-900 mb-1">পদ্ধতি ১: গুগল সাইটস (Google Sites - একদম সহজ ও ফ্রি)</h4>
+                    <ol class="list-decimal list-inside space-y-1 text-slate-600">
+                        <li><b>sites.google.com</b>-এ গিয়ে একটি নতুন সাইট খুলুন।</li>
+                        <li>ডানদিকের মেনু থেকে <b>"Embed"</b> &gt; <b>"Embed code"</b> সিলেক্ট করুন।</li>
+                        <li>এই ফাইলের সম্পূর্ণ কোডটি পেস্ট করে দিয়ে "Publish" বাটনে ক্লিক করুন।</li>
+                        <li>যে ওয়েবসাইট লিঙ্কটি তৈরি হবে, সেটি সমস্ত এজেন্টদের পাঠিয়ে দিন।</li>
+                    </ol>
+                </div>
+
+                <div class="bg-emerald-50 p-3.5 rounded-xl border border-emerald-200">
+                    <h4 class="font-bold text-sm text-emerald-900 mb-1">পদ্ধতি ২: Netlify / Vercel (১ ক্লিকে মোবাইল অ্যাপ লিংক)</h4>
+                    <ol class="list-decimal list-inside space-y-1 text-emerald-800">
+                        <li><b>netlify.com/drop</b>-এ গিয়ে এই `index.html` ফাইলটি ড্রপ করুন।</li>
+                        <li>সাথে সাথে আপনার ক্লাবের জন্য একটি পার্মানেন্ট অনলাইন লাইভ লিঙ্ক পেয়ে যাবেন (যেমন: `bandhab-puja.netlify.app`)।</li>
+                        <li>এজেন্টরা তাদের মোবাইলের ক্রোম ব্রাউজারে এটি খুলে "Add to Home Screen" করে অ্যাপের মতো ব্যবহার করতে পারবে।</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage">সফলভাবে সম্পন্ন হয়েছে!</span>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- APPLICATION LOGIC & JAVASCRIPT                 -->
+    <!-- ============================================== -->
+    <script>
+        // Storage Keys
+        const STORAGE_AGENTS_KEY = 'BSKP_AGENTS_V2';
+        const STORAGE_MEMBERS_KEY = 'BSKP_MEMBERS_V2';
+        const STORAGE_CONFIG_KEY = 'BSKP_CONFIG_V2';
+        const STORAGE_PENDING_KEY = 'BSKP_PENDING_V2';
+
+        // ১৩ জন অফিসিয়াল এজেন্ট এবং তাদের সিক্রেট পিন
+        const DEFAULT_AGENTS = [
+            { id: "agent_1", bookNo: "Book-01", name: "ARNAB SADHU ( NIL )", phone: "9641831804", pin: "agent01" },
+            { id: "agent_2", bookNo: "Book-02", name: "PRADIP DAS", phone: "7047248745", pin: "agent02" },
+            { id: "agent_3", bookNo: "Book-03", name: "SUBHADIP SEN", phone: "7585049781", pin: "agent03" },
+            { id: "agent_4", bookNo: "Book-04", name: "NAYAN PATUA", phone: "9382012923", pin: "agent04" },
+            { id: "agent_5", bookNo: "Book-05", name: "SUBHAM SADHU", phone: "8159080667", pin: "agent05" },
+            { id: "agent_6", bookNo: "Book-06", name: "SUDIP BHANDARI", phone: "8001351173", pin: "agent06" },
+            { id: "agent_7", bookNo: "Book-07", name: "SOUDIP DAS/ SURJA SADHU", phone: "7001325549", pin: "agent07" },
+            { id: "agent_8", bookNo: "Book-08", name: "SOUVIK DUTTA", phone: "6294758939", pin: "agent08" },
+            { id: "agent_9", bookNo: "Book-09", name: "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", phone: "7001507114", pin: "agent09" },
+            { id: "agent_10", bookNo: "Book-10", name: "BISWAJIT PRAMANICK", phone: "9641629177", pin: "agent10" },
+            { id: "agent_11", bookNo: "Book-11", name: "MEGNATH SAHA", phone: "8999640319", pin: "agent11" },
+            { id: "agent_12", bookNo: "Book-12", name: "ARPON DAS", phone: "9064329720", pin: "agent12" },
+            { id: "agent_13", bookNo: "Book-13", name: "RANA MONDAL", phone: "8884039470", pin: "agent13" }
+        ];
+
+        // System State
+        let agents = [];
+        let members = [];
+        let pendingCollections = [];
+        let config = {
+            standardCapacity: 25,
+            currentFiscalYear: 2026,
+            currentRole: null, // 'ADMIN' or agentId (Default null: must login)
+            firebaseDbUrl: ''
+        };
+
+        // Report Filter State
+        let reportFilter = {
+            searchQuery: '',
+            agentBook: 'ALL',
+            status: 'ALL'
+        };
+
+        // Initialize Data on Load
+        function initializeSystemData() {
+            try {
+                const storedAgents = localStorage.getItem(STORAGE_AGENTS_KEY);
+                const storedMembers = localStorage.getItem(STORAGE_MEMBERS_KEY);
+                const storedPending = localStorage.getItem(STORAGE_PENDING_KEY);
+                const storedConfig = localStorage.getItem(STORAGE_CONFIG_KEY);
+
+                agents = storedAgents ? JSON.parse(storedAgents) : DEFAULT_AGENTS;
+                members = storedMembers ? JSON.parse(storedMembers) : [];
+                pendingCollections = storedPending ? JSON.parse(storedPending) : [];
+                if (storedConfig) {
+                    const loadedConfig = JSON.parse(storedConfig);
+                    config.standardCapacity = loadedConfig.standardCapacity || 25;
+                    config.currentFiscalYear = loadedConfig.currentFiscalYear || 2026;
+                    config.firebaseDbUrl = loadedConfig.firebaseDbUrl || '';
+                }
+
+                // Force logout on first open/refresh
+                config.currentRole = null;
+
+                const capSelect = document.getElementById('standardCapacitySelect');
+                if (capSelect) capSelect.value = config.standardCapacity.toString();
+
+                if (members.length === 0) {
+                    members = generateSeedMembers();
+                }
+
+                saveToLocalStorage();
+                initCloudSyncListener();
+                populateGatewayAgents();
+            } catch (e) {
+                console.error("Initialization error:", e);
+                agents = DEFAULT_AGENTS;
+                members = generateSeedMembers();
+            }
+        }
+
+        // ==========================================
+        // FIRST-TIME GATEWAY LOGIN SYSTEM (STRICT)
+        // ==========================================
+        function populateGatewayAgents() {
+            const selectEl = document.getElementById('gateInputAgentSelect');
+            if (selectEl) {
+                selectEl.innerHTML = agents.map(ag => `<option value="${ag.id}">${ag.bookNo} — ${ag.name}</option>`).join('');
+            }
+        }
+
+        function switchGatewayTab(tab) {
+            const btnAdmin = document.getElementById('gateTabAdminBtn');
+            const btnAgent = document.getElementById('gateTabAgentBtn');
+            const boxAdmin = document.getElementById('gateBoxAdmin');
+            const boxAgent = document.getElementById('gateBoxAgent');
+
+            if (tab === 'ADMIN') {
+                btnAdmin.className = 'flex-1 py-2.5 text-center border-b-2 border-brand-600 text-brand-700 font-black';
+                btnAgent.className = 'flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-500 font-bold';
+                boxAdmin.classList.remove('hidden');
+                boxAgent.classList.add('hidden');
+            } else {
+                btnAgent.className = 'flex-1 py-2.5 text-center border-b-2 border-brand-600 text-brand-700 font-black';
+                btnAdmin.className = 'flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-500 font-bold';
+                boxAgent.classList.remove('hidden');
+                boxAdmin.classList.add('hidden');
+            }
+        }
+
+        function handleGatewayAdminLogin() {
+            const pass = document.getElementById('gateInputAdminPass').value;
+            if (pass === 'admin123' || pass === 'admin') {
+                config.currentRole = 'ADMIN';
+                unlockApp();
+                showToast("প্রধান অ্যাডমিন হিসেবে সফলভাবে লগইন করা হয়েছে!");
+            } else {
+                alert("ভুল পাসওয়ার্ড! সঠিক অ্যাডমিন পাসওয়ার্ড দিন (admin123)।");
+            }
+        }
+
+        function handleGatewayAgentLogin() {
+            const agId = document.getElementById('gateInputAgentSelect').value;
+            const pin = document.getElementById('gateInputAgentPin').value.trim();
+            const agent = agents.find(a => a.id === agId);
+
+            if (agent && agent.pin === pin) {
+                config.currentRole = agId;
+                unlockApp();
+                showToast(`এজেন্ট ${agent.name} হিসেবে লগইন সফল হয়েছে!`);
+            } else {
+                alert("ভুল পাসওয়ার্ড! আপনার নির্দিষ্ট গোপন পিন দিন।");
+            }
+        }
+
+        function unlockApp() {
+            document.getElementById('mandatoryLoginGateway').classList.add('hidden');
+            document.getElementById('authenticatedAppContainer').classList.remove('hidden');
+            document.getElementById('authenticatedAppContainer').classList.add('flex');
+
+            updateRoleDisplay();
+            updateHeadersAndBadges();
+
+            if (config.currentRole === 'ADMIN') {
+                switchTab('dashboard');
+            } else {
+                switchTab('agent-view');
+            }
+        }
+
+        function performLogout() {
+            config.currentRole = null;
+            document.getElementById('gateInputAdminPass').value = '';
+            document.getElementById('gateInputAgentPin').value = '';
+            document.getElementById('authenticatedAppContainer').classList.add('hidden');
+            document.getElementById('authenticatedAppContainer').classList.remove('flex');
+            document.getElementById('mandatoryLoginGateway').classList.remove('hidden');
+            showToast("সফলভাবে লগআউট করা হয়েছে!");
+        }
+
+        function generateSeedMembers() {
+            const seed = [];
+            let sl = 1;
+            agents.forEach(ag => {
+                const count = ag.bookNo === 'Book-13' ? 18 : 25;
+                for (let i = 0; i < count; i++) {
+                    seed.push({
+                        id: `M_${sl}`,
+                        slNo: sl,
+                        name: `সদস্য ${sl}`,
+                        phone: `9830${String(100000 + sl).slice(0, 6)}`,
+                        agentId: ag.id,
+                        bookNo: ag.bookNo,
+                        agentName: ag.name,
+                        prevAmount: 300,
+                        targetAmount: 300,
+                        paidAmount: 0,
+                        dueAmount: 300,
+                        status: 'DUE',
+                        receiptNo: '',
+                        paymentMethod: 'CASH',
+                        paymentDate: ''
+                    });
+                    sl++;
+                }
+            });
+            return seed;
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem(STORAGE_AGENTS_KEY, JSON.stringify(agents));
+            localStorage.setItem(STORAGE_MEMBERS_KEY, JSON.stringify(members));
+            localStorage.setItem(STORAGE_PENDING_KEY, JSON.stringify(pendingCollections));
+            localStorage.setItem(STORAGE_CONFIG_KEY, JSON.stringify(config));
+            broadcastCloudUpdate();
+        }
+
+        // ==========================================
+        // REALTIME CLOUD SYNC & MULTI-USER LISTENER
+        // ==========================================
+        let broadcastChannel = null;
+
+        function initCloudSyncListener() {
+            try {
+                broadcastChannel = new BroadcastChannel('BSKP_KALI_PUJA_SYNC');
+                broadcastChannel.onmessage = (event) => {
+                    if (event.data && event.data.type === 'SYNC_STATE') {
+                        members = event.data.members;
+                        pendingCollections = event.data.pending;
+                        agents = event.data.agents;
+                        config.currentFiscalYear = event.data.currentFiscalYear;
+                        
+                        if (config.currentRole) {
+                            renderActiveViews();
+                            showToast("ক্লাউড থেকে নতুন কালেকশন আপডেট হয়েছে!");
+                        }
+                    }
+                };
+            } catch (e) {
+                console.log("BroadcastChannel fallback to storage events");
+            }
+
+            window.addEventListener('storage', (e) => {
+                if (e.key === STORAGE_MEMBERS_KEY || e.key === STORAGE_PENDING_KEY) {
+                    members = JSON.parse(localStorage.getItem(STORAGE_MEMBERS_KEY)) || members;
+                    pendingCollections = JSON.parse(localStorage.getItem(STORAGE_PENDING_KEY)) || pendingCollections;
+                    if (config.currentRole) renderActiveViews();
+                }
+            });
+        }
+
+        function broadcastCloudUpdate() {
+            if (broadcastChannel) {
+                broadcastChannel.postMessage({
+                    type: 'SYNC_STATE',
+                    members: members,
+                    pending: pendingCollections,
+                    agents: agents,
+                    currentFiscalYear: config.currentFiscalYear
+                });
+            }
+        }
+
+        function renderActiveViews() {
+            if (!config.currentRole) return;
+            updateHeadersAndBadges();
+            if (config.currentRole === 'ADMIN') {
+                renderDashboard();
+                filterMemberList();
+                renderReportTable();
+                renderApprovalsQueue();
+                renderAgentBooks();
+                renderAgentsMgmt();
+            } else {
+                renderAgentView();
+            }
+        }
+
+        function updateHeadersAndBadges() {
+            document.getElementById('badgeFiscalYearDisplay').innerText = `কালীপূজা ${config.currentFiscalYear}`;
+            document.getElementById('sessionYearText').innerText = `${config.currentFiscalYear} সালের পূজা সেশন`;
+        }
+
+        // ==========================================
+        // NAVIGATION & ROLE ISOLATION
+        // ==========================================
+        function renderNavigation() {
+            const tabsNav = document.getElementById('mainNavigationTabs');
+            if (config.currentRole === 'ADMIN') {
+                tabsNav.innerHTML = `
+                    <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="nav-tab px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm text-white bg-red-800 transition flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-chart-pie"></i> ড্যাশবোর্ড
+                    </button>
+                    <button onclick="switchTab('reports')" id="btn-tab-reports" class="nav-tab px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm text-red-200 hover:text-white hover:bg-red-800 transition flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-chart-line"></i> রিপোর্ট ও সার্চ সেন্টার
+                    </button>
+                    <button onclick="switchTab('approvals')" id="btn-tab-approvals" class="nav-tab px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm text-red-200 hover:text-white hover:bg-red-800 transition flex items-center gap-1.5 whitespace-nowrap relative">
+                        <i class="fa-solid fa-stamp"></i> পেমেন্ট এপ্রুভাল
+                        <span id="navPendingBadge" class="bg-amber-400 text-red-950 font-black text-[10px] px-1.5 py-0.2 rounded-full ml-1">0</span>
+                    </button>
+                    <button onclick="switchTab('members')" id="btn-tab-members" class="nav-tab px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm text-red-200 hover:text-white hover:bg-red-800 transition flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-users"></i> মেম্বার অ্যালটমেন্ট
+                    </button>
+                    <button onclick="switchTab('books')" id="btn-tab-books" class="nav-tab px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm text-red-200 hover:text-white hover:bg-red-800 transition flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-book-bookmark"></i> এজেন্ট বুক ও ক্যাপাসিটি
+                    </button>
+                    <button onclick="switchTab('agents-mgmt')" id="btn-tab-agents-mgmt" class="nav-tab px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm text-red-200 hover:text-white hover:bg-red-800 transition flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-user-shield"></i> এজেন্ট ও পাসওয়ার্ড
+                    </button>
+                `;
+            } else {
+                const currentAgent = agents.find(a => a.id === config.currentRole);
+                tabsNav.innerHTML = `
+                    <button onclick="switchTab('agent-view')" id="btn-tab-agent-view" class="nav-tab px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm text-white bg-red-800 transition flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-book-open"></i> আমার এজেন্ট বুক (${currentAgent ? currentAgent.bookNo : ''})
+                    </button>
+                `;
+            }
+        }
+
+        function switchTab(tabName) {
+            const allTabs = ['dashboard', 'reports', 'approvals', 'members', 'books', 'agents-mgmt', 'agent-view'];
+            allTabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                if (el) el.classList.add('hidden');
+                const btn = document.getElementById(`btn-tab-${t}`);
+                if (btn) {
+                    btn.classList.remove('bg-red-800', 'text-white');
+                    btn.classList.add('text-red-200');
+                }
+            });
+
+            const activeEl = document.getElementById(`tab-${tabName}`);
+            if (activeEl) activeEl.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`btn-tab-${tabName}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-red-200');
+                activeBtn.classList.add('bg-red-800', 'text-white');
+            }
+
+            if (tabName === 'dashboard') renderDashboard();
+            if (tabName === 'reports') renderReportTable();
+            if (tabName === 'approvals') renderApprovalsQueue();
+            if (tabName === 'members') filterMemberList();
+            if (tabName === 'books') renderAgentBooks();
+            if (tabName === 'agents-mgmt') renderAgentsMgmt();
+            if (tabName === 'agent-view') renderAgentView();
+        }
+
+        function updateRoleDisplay() {
+            const display = document.getElementById('currentRoleDisplay');
+            if (config.currentRole === 'ADMIN') {
+                display.innerHTML = `<i class="fa-solid fa-shield-halved text-amber-400 text-xs"></i> প্রধান অ্যাডমিন`;
+            } else {
+                const ag = agents.find(a => a.id === config.currentRole);
+                display.innerHTML = `<i class="fa-solid fa-user-tag text-emerald-300 text-xs"></i> ${ag ? ag.name : 'এজেন্ট'}`;
+            }
+            renderNavigation();
+        }
+
+        // ==========================================
+        // YEAR ROLLOVER ENGINE
+        // ==========================================
+        function executeYearRollover() {
+            const nextYear = config.currentFiscalYear + 1;
+            const confirmVal = prompt(
+                `সতর্কবার্তা: আপনি কি ${config.currentFiscalYear} সালের পূজা সেশন সমাপ্ত করে নতুন সাল ${nextYear}-এ যেতে চান?\n\n` +
+                `• সমস্ত মেম্বারের বর্তমান আদায়কৃত অর্থ পূর্ববর্তী বছরের চাঁদা হিসেবে স্থানান্তরিত হবে।\n` +
+                `• নতুন বছর ${nextYear}-এর জন্য নতুন চাঁদা ধার্য্য হবে এবং স্ট্যাটাস DUE হবে।\n\n` +
+                `নিশ্চিত করতে নিচে লিখুন: ${nextYear}`
+            );
+
+            if (confirmVal !== String(nextYear)) {
+                if (confirmVal !== null) showToast("সাল মেলেনি, রোলওভার বাতিল হলো।");
+                return;
+            }
+
+            members.forEach(m => {
+                m.prevAmount = m.paidAmount > 0 ? m.paidAmount : m.targetAmount;
+                m.paidAmount = 0;
+                m.dueAmount = m.targetAmount;
+                m.status = m.dueAmount === 0 ? 'PAID' : 'DUE';
+                m.receiptNo = '';
+            });
+
+            config.currentFiscalYear = nextYear;
+            pendingCollections = [];
+            saveToLocalStorage();
+            updateHeadersAndBadges();
+            showToast(`অভিনন্দন! সফলভাবে ${config.currentFiscalYear} সালের সেশন শুরু হলো!`);
+            renderActiveViews();
+        }
+
+        // ==========================================
+        // 1. DASHBOARD & SUMMARY METRICS
+        // ==========================================
+        function renderDashboard() {
+            if (config.currentRole !== 'ADMIN') return;
+
+            const totalMembers = members.length;
+            const totalTarget = members.reduce((sum, m) => sum + (Number(m.targetAmount) || 0), 0);
+            const totalApproved = members.filter(m => m.status === 'PAID').reduce((sum, m) => sum + (Number(m.paidAmount) || 0), 0);
+            const totalPending = pendingCollections.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            const totalDue = totalTarget - totalApproved;
+            const collectionRate = totalTarget > 0 ? ((totalApproved / totalTarget) * 100).toFixed(1) : 0;
+
+            document.getElementById('statTotalMembers').innerText = totalMembers;
+            document.getElementById('statTarget2026').innerText = `₹${totalTarget.toLocaleString('en-IN')}`;
+            document.getElementById('statTotalApproved').innerText = `₹${totalApproved.toLocaleString('en-IN')}`;
+            document.getElementById('statCollectionRate').innerText = `${collectionRate}% আদায়`;
+            document.getElementById('statTotalPending').innerText = `₹${totalPending.toLocaleString('en-IN')}`;
+            document.getElementById('statPendingCountBadge').innerText = `${pendingCollections.length} টি রসিদ অপেক্ষায়`;
+            document.getElementById('statTotalDue').innerText = `₹${totalDue.toLocaleString('en-IN')}`;
+
+            const navBadge = document.getElementById('navPendingBadge');
+            if (navBadge) navBadge.innerText = pendingCollections.length;
+
+            const tbody = document.getElementById('agentPerformanceTableBody');
+            tbody.innerHTML = '';
+
+            let hasOverCapacity = false;
+
+            agents.forEach(agent => {
+                const agMembers = members.filter(m => m.agentId === agent.id || m.bookNo === agent.bookNo);
+                const memCount = agMembers.length;
+                const target = agMembers.reduce((sum, m) => sum + Number(m.targetAmount || 0), 0);
+                const collected = agMembers.filter(m => m.status === 'PAID').reduce((sum, m) => sum + Number(m.paidAmount || 0), 0);
+                const pending = pendingCollections.filter(p => p.bookNo === agent.bookNo).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+                const due = target - collected;
+                const progressPct = target > 0 ? Math.round((collected / target) * 100) : 0;
+
+                const isOver = memCount > config.standardCapacity;
+                if (isOver) hasOverCapacity = true;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="p-3 sm:px-4 font-bold text-slate-900">${agent.bookNo}</td>
+                    <td class="p-3 sm:px-4">
+                        <div class="font-semibold text-slate-800">${agent.name}</div>
+                        <div class="text-[11px] text-slate-500 font-mono">${agent.phone}</div>
+                    </td>
+                    <td class="p-3 sm:px-4 text-center">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isOver ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-slate-100 text-slate-700'}">
+                            ${memCount} / ${config.standardCapacity} জন
+                            ${isOver ? '<i class="fa-solid fa-triangle-exclamation ml-1 text-amber-600 text-[10px]"></i>' : ''}
+                        </span>
+                    </td>
+                    <td class="p-3 sm:px-4 text-right font-medium text-slate-700">₹${target.toLocaleString('en-IN')}</td>
+                    <td class="p-3 sm:px-4 text-right font-bold text-emerald-600">₹${collected.toLocaleString('en-IN')}</td>
+                    <td class="p-3 sm:px-4 text-right font-medium text-indigo-600">₹${pending.toLocaleString('en-IN')}</td>
+                    <td class="p-3 sm:px-4 text-right font-semibold text-rose-600">₹${due.toLocaleString('en-IN')}</td>
+                    <td class="p-3 sm:px-4 text-center">
+                        <div class="w-16 bg-slate-200 rounded-full h-1.5 mx-auto overflow-hidden">
+                            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${progressPct}%"></div>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-semibold mt-0.5 block">${progressPct}%</span>
+                    </td>
+                    <td class="p-3 sm:px-4 text-center">
+                        <button onclick="filterReportByAgent('${agent.bookNo}')" class="text-xs bg-slate-100 hover:bg-brand-50 text-brand-700 font-semibold px-2 py-1 rounded-lg border border-slate-200 transition">
+                            রিপোর্ট দেখুন
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const alertBanner = document.getElementById('capacityAlertBanner');
+            if (hasOverCapacity) {
+                alertBanner.classList.remove('hidden');
+                document.getElementById('capacityAlertText').innerText = 
+                    `সতর্কবার্তা: কিছু এজেন্ট বইয়ে ধার্য্যকৃত সীমার (${config.standardCapacity} জন) চেয়ে বেশি মেম্বার অ্যালট হয়েছে।`;
+            } else {
+                alertBanner.classList.add('hidden');
+            }
+        }
+
+        // ==========================================
+        // 2. COMPLETE REPORTING & SEARCH CENTER
+        // ==========================================
+        function populateReportDropdowns() {
+            const dropdown = document.getElementById('reportAgentDropdown');
+            if (!dropdown) return;
+            const currentVal = dropdown.value;
+            dropdown.innerHTML = '<option value="ALL">-- সমস্ত এজেন্ট ও বুক --</option>' +
+                agents.map(ag => `<option value="${ag.bookNo}">${ag.bookNo} — ${ag.name}</option>`).join('');
+            dropdown.value = currentVal;
+        }
+
+        function handleReportFilterChange() {
+            reportFilter.searchQuery = (document.getElementById('reportSearchInput').value || '').toLowerCase().trim();
+            reportFilter.agentBook = document.getElementById('reportAgentDropdown').value;
+            reportFilter.status = document.getElementById('reportStatusDropdown').value;
+            renderReportTable();
+        }
+
+        function filterReportByAgent(bookNo) {
+            switchTab('reports');
+            document.getElementById('reportAgentDropdown').value = bookNo;
+            handleReportFilterChange();
+        }
+
+        function getFilteredReportMembers() {
+            return members.filter(m => {
+                const matchSearch = reportFilter.searchQuery === '' ||
+                    m.name.toLowerCase().includes(reportFilter.searchQuery) ||
+                    (m.phone && m.phone.includes(reportFilter.searchQuery)) ||
+                    (m.bookNo && m.bookNo.toLowerCase().includes(reportFilter.searchQuery)) ||
+                    (m.agentName && m.agentName.toLowerCase().includes(reportFilter.searchQuery));
+
+                const matchAgent = reportFilter.agentBook === 'ALL' || m.bookNo === reportFilter.agentBook;
+                const matchStatus = reportFilter.status === 'ALL' || m.status === reportFilter.status;
+
+                return matchSearch && matchAgent && matchStatus;
+            });
+        }
+
+        function renderReportTable() {
+            populateReportDropdowns();
+            const filtered = getFilteredReportMembers();
+            const totalTarget = filtered.reduce((s, m) => s + Number(m.targetAmount || 0), 0);
+            const totalPaid = filtered.reduce((s, m) => s + Number(m.paidAmount || 0), 0);
+            const totalDue = filtered.reduce((s, m) => s + Number(m.dueAmount || 0), 0);
+
+            document.getElementById('repCountMembers').innerText = filtered.length;
+            document.getElementById('repTotalTarget').innerText = `₹${totalTarget.toLocaleString('en-IN')}`;
+            document.getElementById('repTotalPaid').innerText = `₹${totalPaid.toLocaleString('en-IN')}`;
+            document.getElementById('repTotalDue').innerText = `₹${totalDue.toLocaleString('en-IN')}`;
+
+            document.getElementById('reportActiveFilterText').innerText = 
+                `${reportFilter.agentBook === 'ALL' ? 'সকল বুক' : reportFilter.agentBook} • ${reportFilter.status === 'ALL' ? 'সকল স্ট্যাটাস' : reportFilter.status}`;
+
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400 font-sans">কোন সদস্য খুঁজে পাওয়া যায়নি! ফিল্টার পরিবর্তন করে দেখুন।</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-500 font-mono">${m.slNo}</td>
+                    <td class="p-3 font-bold text-slate-900">${m.name}</td>
+                    <td class="p-3 text-slate-600 font-mono">${m.phone || '-'}</td>
+                    <td class="p-3">
+                        <span class="font-bold text-slate-800">${m.bookNo}</span>
+                        <span class="text-[10px] text-slate-500 block">${m.agentName}</span>
+                    </td>
+                    <td class="p-3 text-right font-mono text-slate-600">₹${m.prevAmount}</td>
+                    <td class="p-3 text-right font-mono font-bold text-amber-700">₹${m.targetAmount}</td>
+                    <td class="p-3 text-right font-mono font-bold text-emerald-600">₹${m.paidAmount}</td>
+                    <td class="p-3 text-right font-mono font-bold text-rose-600">₹${m.dueAmount}</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${m.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : (m.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800')}">
+                            ${m.status === 'PAID' ? 'আদায়' : (m.status === 'PENDING' ? 'পেন্ডিং' : 'বকেয়া')}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center">
+                        ${m.status === 'PAID' ? `
+                            <button onclick="openReceiptSlipModal('${m.id}')" class="px-2 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded text-xs font-semibold shadow">
+                                <i class="fa-solid fa-receipt mr-1"></i> রসিদ
+                            </button>
+                        ` : `
+                            <button onclick="openCollectModal('${m.id}')" class="px-2 py-1 bg-brand-600 hover:bg-brand-700 text-white rounded text-xs font-semibold shadow">
+                                চাঁদা তুলুন
+                            </button>
+                        `}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportFilteredReportExcel() {
+            const filtered = getFilteredReportMembers();
+            if (filtered.length === 0) {
+                showToast("ডাউনলোড করার মতো কোনো মেম্বার নেই!");
+                return;
+            }
+
+            const rows = filtered.map((m, idx) => ({
+                "ক্রমিক নং": idx + 1,
+                "মেম্বার আইডি": m.slNo,
+                "সদস্যের নাম": m.name,
+                "মোবাইল নম্বর": m.phone,
+                "বুক নম্বর": m.bookNo,
+                "এজেন্টের নাম": m.agentName,
+                "পূর্ববর্তী চাঁদা": m.prevAmount,
+                "চলতি টার্গেট": m.targetAmount,
+                "আদায়কৃত টাকা": m.paidAmount,
+                "বকেয়া টাকা": m.dueAmount,
+                "স্ট্যাটাস": m.status,
+                "রসিদ নম্বর": m.receiptNo || ""
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, "CUSTOM_REPORT");
+            XLSX.writeFile(wb, `REPORT_${reportFilter.agentBook}_${reportFilter.status}_${config.currentFiscalYear}.xlsx`);
+            showToast("কাস্টম রিপোর্ট এক্সেল ফাইল ডাউনলোড সফল হয়েছে!");
+        }
+
+        // ==========================================
+        // 3. MEMBERS FINAL LIST & ALLOTMENT
+        // ==========================================
+        function populateFilterDropdowns() {
+            const agentFilter = document.getElementById('agentFilterSelect');
+            const currentVal = agentFilter.value;
+            agentFilter.innerHTML = '<option value="ALL">সকল এজেন্ট বই</option>' +
+                agents.map(ag => `<option value="${ag.id}">${ag.bookNo} — ${ag.name}</option>`).join('');
+            agentFilter.value = currentVal;
+        }
+
+        function filterMemberList() {
+            populateFilterDropdowns();
+            const searchTerm = (document.getElementById('memberSearchInput').value || '').toLowerCase().trim();
+            const selectedAgent = document.getElementById('agentFilterSelect').value;
+            const selectedStatus = document.getElementById('statusFilterSelect').value;
+
+            const filtered = members.filter(m => {
+                const matchesSearch = m.name.toLowerCase().includes(searchTerm) || (m.phone && m.phone.includes(searchTerm));
+                const matchesAgent = (selectedAgent === 'ALL') || (m.agentId === selectedAgent);
+                const matchesStatus = (selectedStatus === 'ALL') || (m.status === selectedStatus);
+                return matchesSearch && matchesAgent && matchesStatus;
+            });
+
+            document.getElementById('filteredMembersCount').innerText = filtered.length;
+            renderMemberTableRows(filtered);
+        }
+
+        function renderMemberTableRows(memberList) {
+            const tbody = document.getElementById('finalMemberListTableBody');
+            tbody.innerHTML = '';
+
+            if (memberList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">কোন সদস্য পাওয়া যায়নি</td></tr>`;
+                return;
+            }
+
+            memberList.forEach(m => {
+                const agentOptionsHtml = agents.map(ag => 
+                    `<option value="${ag.id}" ${ag.id === m.agentId ? 'selected' : ''}>${ag.bookNo} - ${ag.name.slice(0, 15)}</option>`
+                ).join('');
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-500 font-mono">${m.slNo}</td>
+                    <td class="p-3 font-bold text-slate-900">${m.name}</td>
+                    <td class="p-3 text-slate-600 font-mono">${m.phone || '-'}</td>
+                    <td class="p-3">
+                        <select onchange="reallocateMember('${m.id}', this.value)" class="text-xs font-medium bg-white border border-slate-300 rounded-lg p-1 text-slate-800 focus:ring-1 focus:ring-brand-500">
+                            ${agentOptionsHtml}
+                        </select>
+                    </td>
+                    <td class="p-3 text-right text-slate-600 font-mono">₹${m.prevAmount}</td>
+                    <td class="p-3 text-right font-bold text-amber-700 font-mono">₹${m.targetAmount}</td>
+                    <td class="p-3 text-right font-bold text-emerald-700 font-mono">₹${m.paidAmount}</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${m.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                            ${m.status === 'PAID' ? 'পরিশোধিত' : 'বকেয়া'}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center">
+                        ${m.status === 'PAID' ? `
+                            <button onclick="openReceiptSlipModal('${m.id}')" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded text-xs font-semibold shadow">
+                                <i class="fa-solid fa-receipt mr-1"></i> রসিদ
+                            </button>
+                        ` : `
+                            <button onclick="openCollectModal('${m.id}')" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-700 text-white rounded text-xs font-semibold shadow">
+                                চাঁদা তুলুন
+                            </button>
+                        `}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function reallocateMember(memberId, newAgentId) {
+            const member = members.find(m => m.id === memberId);
+            const targetAgent = agents.find(a => a.id === newAgentId);
+            if (!member || !targetAgent) return;
+
+            member.agentId = targetAgent.id;
+            member.bookNo = targetAgent.bookNo;
+            member.agentName = targetAgent.name;
+
+            saveToLocalStorage();
+            showToast(`${member.name}-কে ${targetAgent.bookNo}-এ স্থানান্তর করা হয়েছে`);
+            renderActiveViews();
+        }
+
+        function updateSystemCapacity(val) {
+            config.standardCapacity = parseInt(val) || 25;
+            saveToLocalStorage();
+            renderActiveViews();
+            showToast(`বুক ধারণক্ষমতা ${config.standardCapacity} জন সেট করা হয়েছে`);
+        }
+
+        // ==========================================
+        // 4. AGENT BOOKS & CAPACITY VIEW
+        // ==========================================
+        function renderAgentBooks() {
+            const grid = document.getElementById('agentBooksGrid');
+            grid.innerHTML = '';
+
+            agents.forEach(agent => {
+                const bookMembers = members.filter(m => m.agentId === agent.id || m.bookNo === agent.bookNo);
+                const count = bookMembers.length;
+                const capacity = config.standardCapacity;
+                const percent = Math.min(100, Math.round((count / capacity) * 100));
+                const isOver = count > capacity;
+                const vacancies = capacity - count;
+
+                const collected = bookMembers.filter(m => m.status === 'PAID').reduce((sum, m) => sum + Number(m.paidAmount || 0), 0);
+                const target = bookMembers.reduce((sum, m) => sum + Number(m.targetAmount || 0), 0);
+
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-2xl p-5 shadow-sm border transition hover:shadow-md ${isOver ? 'border-amber-400 bg-amber-50/20' : 'border-slate-200'}`;
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-mono">${agent.bookNo}</span>
+                            <h4 class="font-bold text-slate-900 text-base mt-0.5">${agent.name}</h4>
+                            <p class="text-xs text-slate-500 font-mono"><i class="fa-solid fa-phone text-[10px]"></i> ${agent.phone}</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${isOver ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-slate-100 text-slate-700'}">
+                            ${count} / ${capacity}
+                        </span>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="flex justify-between text-xs text-slate-500 mb-1">
+                            <span>ক্যাপাসিটি:</span>
+                            <span class="font-semibold ${isOver ? 'text-amber-700' : 'text-slate-700'}">
+                                ${isOver ? `অতিরিক্ত ${Math.abs(vacancies)} জন মেম্বার` : (vacancies === 0 ? 'বুক পূর্ণ' : `${vacancies} টি ফাঁকা`)}
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                            <div class="${isOver ? 'bg-amber-500' : 'bg-brand-600'} h-2.5 rounded-full" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs font-mono">
+                        <div class="bg-slate-50 p-2 rounded-lg">
+                            <span class="text-slate-500 block font-sans">টার্গেট:</span>
+                            <span class="font-bold text-slate-800">₹${target.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div class="bg-emerald-50 p-2 rounded-lg">
+                            <span class="text-emerald-700 block font-sans">সংগৃহীত:</span>
+                            <span class="font-bold text-emerald-700">₹${collected.toLocaleString('en-IN')}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex items-center justify-between pt-2">
+                        <button onclick="filterReportByAgent('${agent.bookNo}')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                            <i class="fa-solid fa-users-viewfinder"></i> রিপোর্ট
+                        </button>
+                        <button onclick="openAddMemberToAgentModal('${agent.id}')" class="text-xs bg-brand-600 hover:bg-brand-700 text-white font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow">
+                            <i class="fa-solid fa-plus"></i> মেম্বার যুক্ত
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openAddMemberToAgentModal(agentId) {
+            openMemberModal();
+            const selectEl = document.getElementById('newMemberAgentId');
+            if (selectEl) selectEl.value = agentId;
+        }
+
+        // ==========================================
+        // 5. CASHIER PAYMENT APPROVAL QUEUE
+        // ==========================================
+        function populateApprovalAgentDropdown() {
+            const selectEl = document.getElementById('approvalAgentFilter');
+            if (!selectEl) return;
+            const currentVal = selectEl.value;
+            selectEl.innerHTML = '<option value="ALL">সকল এজেন্ট বই</option>' +
+                agents.map(ag => `<option value="${ag.bookNo}">${ag.bookNo} — ${ag.name}</option>`).join('');
+            selectEl.value = currentVal;
+        }
+
+        function renderApprovalsQueue() {
+            populateApprovalAgentDropdown();
+
+            const tbody = document.getElementById('approvalsTableBody');
+            tbody.innerHTML = '';
+
+            document.getElementById('approvalCounterBadge').innerText = `${pendingCollections.length} টি আবেদন বাকি`;
+
+            const searchInput = (document.getElementById('approvalSearchInput') ? document.getElementById('approvalSearchInput').value : '').toLowerCase().trim();
+            const agentFilter = document.getElementById('approvalAgentFilter') ? document.getElementById('approvalAgentFilter').value : 'ALL';
+            const methodFilter = document.getElementById('approvalMethodFilter') ? document.getElementById('approvalMethodFilter').value : 'ALL';
+
+            // Filter pending items
+            const filteredPending = pendingCollections.map((p, originalIdx) => ({ ...p, originalIdx })).filter(item => {
+                const matchSearch = searchInput === '' ||
+                    item.memberName.toLowerCase().includes(searchInput) ||
+                    (item.receiptNo && item.receiptNo.toLowerCase().includes(searchInput)) ||
+                    (item.agentName && item.agentName.toLowerCase().includes(searchInput)) ||
+                    (item.bookNo && item.bookNo.toLowerCase().includes(searchInput));
+
+                const matchAgent = agentFilter === 'ALL' || item.bookNo === agentFilter;
+                const matchMethod = methodFilter === 'ALL' || item.paymentMethod === methodFilter;
+
+                return matchSearch && matchAgent && matchMethod;
+            });
+
+            if (pendingCollections.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 font-medium">কোন অপেক্ষারত পেমেন্ট রসিদ নেই। সমস্ত কালেকশন অনুমোদিত!</td></tr>`;
+                return;
+            }
+
+            if (filteredPending.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 font-medium">ফিল্টার অনুযায়ী কোনো আবেদন পাওয়া যায়নি!</td></tr>`;
+                return;
+            }
+
+            filteredPending.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-600 font-mono">${p.paymentDate}</td>
+                    <td class="p-3 font-semibold text-slate-900 font-mono">${p.receiptNo}</td>
+                    <td class="p-3">
+                        <div class="font-bold text-slate-800">${p.agentName}</div>
+                        <span class="text-[11px] text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded font-medium font-mono">${p.bookNo}</span>
+                    </td>
+                    <td class="p-3 font-semibold text-slate-900">${p.memberName}</td>
+                    <td class="p-3 text-right font-black text-emerald-600 text-sm font-mono">₹${p.amount}</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold ${p.paymentMethod === 'UPI' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'}">
+                            ${p.paymentMethod}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button onclick="approvePendingCollection(${p.originalIdx})" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1">
+                                <i class="fa-solid fa-check"></i> এপ্রুভ করুন
+                            </button>
+                            <button onclick="rejectPendingCollection(${p.originalIdx})" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs px-2.5 py-1.5 rounded-lg transition">
+                                বাতিল
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function approvePendingCollection(index) {
+            const item = pendingCollections[index];
+            const member = members.find(m => m.id === item.memberId);
+
+            if (member) {
+                member.paidAmount = item.amount;
+                member.dueAmount = Math.max(0, member.targetAmount - member.paidAmount);
+                member.status = 'PAID';
+                member.receiptNo = item.receiptNo;
+                member.paymentMethod = item.paymentMethod;
+                member.paymentDate = item.paymentDate;
+
+                pendingCollections.splice(index, 1);
+                saveToLocalStorage();
+                showToast(`মেম্বার ${member.name}-এর চাঁদা ₹${item.amount} সফলভাবে অনুমোদিত হয়েছে!`);
+                renderActiveViews();
+            }
+        }
+
+        function approveAllPendingCollections() {
+            if (pendingCollections.length === 0) {
+                showToast("কোন অপেক্ষারত কালেকশন নেই");
+                return;
+            }
+
+            pendingCollections.forEach(item => {
+                const member = members.find(m => m.id === item.memberId);
+                if (member) {
+                    member.paidAmount = item.amount;
+                    member.dueAmount = Math.max(0, member.targetAmount - member.paidAmount);
+                    member.status = 'PAID';
+                    member.receiptNo = item.receiptNo;
+                    member.paymentMethod = item.paymentMethod;
+                    member.paymentDate = item.paymentDate;
+                }
+            });
+
+            pendingCollections = [];
+            saveToLocalStorage();
+            showToast("সমস্ত অপেক্ষারত কালেকশন এক ক্লিকে অনুমোদিত হয়েছে!");
+            renderActiveViews();
+        }
+
+        function rejectPendingCollection(index) {
+            if (confirm("আপনি কি এই জমা বাতিল করতে চান?")) {
+                pendingCollections.splice(index, 1);
+                saveToLocalStorage();
+                showToast("কালেকশন আবেদন বাতিল করা হয়েছে");
+                renderActiveViews();
+            }
+        }
+
+        // ==========================================
+        // 6. AGENTS & PIN MANAGEMENT
+        // ==========================================
+        function renderAgentsMgmt() {
+            const tbody = document.getElementById('agentsMgmtTableBody');
+            tbody.innerHTML = '';
+
+            agents.forEach((ag, idx) => {
+                const count = members.filter(m => m.agentId === ag.id || m.bookNo === ag.bookNo).length;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-indigo-700 font-mono">${ag.bookNo}</td>
+                    <td class="p-3 font-bold text-slate-900">${ag.name}</td>
+                    <td class="p-3 font-mono text-slate-600">${ag.phone}</td>
+                    <td class="p-3">
+                        <span class="bg-rose-50 text-rose-800 border border-rose-200 px-2 py-1 rounded font-mono font-bold text-xs">${ag.pin}</span>
+                    </td>
+                    <td class="p-3 text-center font-bold font-mono">${count} জন</td>
+                    <td class="p-3 text-center">
+                        <button onclick="editAgentPin('${ag.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
+                            পিন পরিবর্তন
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function editAgentPin(agentId) {
+            const agent = agents.find(a => a.id === agentId);
+            if (!agent) return;
+            const newPin = prompt(`${agent.name}-এর জন্য নতুন গোপন পাসওয়ার্ড (PIN) দিন:`, agent.pin);
+            if (newPin && newPin.trim() !== '') {
+                agent.pin = newPin.trim();
+                saveToLocalStorage();
+                renderAgentsMgmt();
+                populateGatewayAgents();
+                showToast(`পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে: ${agent.pin}`);
+            }
+        }
+
+        // ==========================================
+        // 7. AGENT DEDICATED VIEW (FIELD MODE)
+        // ==========================================
+        function renderAgentView() {
+            const currentAgent = agents.find(a => a.id === config.currentRole);
+            if (!currentAgent) return;
+
+            document.getElementById('agentViewName').innerText = currentAgent.name;
+            document.getElementById('agentViewBookNo').innerText = currentAgent.bookNo;
+
+            // কঠোর ফিল্টারিং: শুধুমাত্র এই এজেন্টের বুক মেম্বার ছাড়া অন্য কারো ডাটা আসবে না
+            const myMembers = members.filter(m => m.agentId === currentAgent.id || m.bookNo === currentAgent.bookNo);
+            const totalTarget = myMembers.reduce((sum, m) => sum + Number(m.targetAmount || 0), 0);
+            const totalCollected = myMembers.filter(m => m.status === 'PAID').reduce((sum, m) => sum + Number(m.paidAmount || 0), 0);
+            const totalPending = pendingCollections.filter(p => p.bookNo === currentAgent.bookNo).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+            document.getElementById('agentViewSummary').innerHTML = 
+                `বরাদ্দকৃত মেম্বার: <b class="text-white">${myMembers.length}</b> জন | মোট টার্গেট: <b class="text-amber-300">₹${totalTarget}</b> | ক্যাশিয়ার এপ্রুভড: <b class="text-emerald-400">₹${totalCollected}</b> ${totalPending > 0 ? `| অপেক্ষারত: <b class="text-indigo-300">₹${totalPending}</b>` : ''}`;
+
+            renderAgentMembersList();
+        }
+
+        function renderAgentMembersList() {
+            const currentAgent = agents.find(a => a.id === config.currentRole);
+            if (!currentAgent) return;
+
+            const searchTerm = (document.getElementById('agentMemberSearch').value || '').toLowerCase().trim();
+            const myMembers = members.filter(m => (m.agentId === currentAgent.id || m.bookNo === currentAgent.bookNo) && m.name.toLowerCase().includes(searchTerm));
+
+            const tbody = document.getElementById('agentBookMembersTableBody');
+            tbody.innerHTML = '';
+
+            if (myMembers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">আপনার বুকে কোনো মেম্বার খুঁজে পাওয়া যায়নি</td></tr>`;
+                return;
+            }
+
+            myMembers.forEach((m, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+
+                let actionHtml = '';
+                if (m.status === 'PAID') {
+                    actionHtml = `
+                        <button onclick="openReceiptSlipModal('${m.id}')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow flex items-center gap-1 mx-auto">
+                            <i class="fa-solid fa-receipt"></i> রসিদ
+                        </button>
+                    `;
+                } else {
+                    const isPending = pendingCollections.some(p => p.memberId === m.id);
+                    if (isPending) {
+                        actionHtml = `<span class="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded font-bold border border-amber-200">জমা অনুমোদনের অপেক্ষায়...</span>`;
+                    } else {
+                        actionHtml = `
+                            <button onclick="openCollectModal('${m.id}')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1 mx-auto">
+                                <i class="fa-solid fa-check"></i> চাঁদা তোলা হয়েছে (Yes)
+                            </button>
+                        `;
+                    }
+                }
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-500 font-mono">${idx + 1}</td>
+                    <td class="p-3 font-bold text-slate-900">${m.name}</td>
+                    <td class="p-3 text-slate-600 font-mono">${m.phone || '-'}</td>
+                    <td class="p-3 text-right text-slate-500 font-mono">₹${m.prevAmount}</td>
+                    <td class="p-3 text-right font-bold text-amber-700 font-mono">₹${m.targetAmount}</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${m.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                            ${m.status === 'PAID' ? 'পরিশোধিত' : 'বকেয়া'}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center">${actionHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openAgentSelfMemberAddModal() {
+            openMemberModal();
+            const selectEl = document.getElementById('newMemberAgentId');
+            if (selectEl) {
+                selectEl.value = config.currentRole;
+                selectEl.disabled = true;
+            }
+        }
+
+        // ==========================================
+        // 8. COLLECTION SUBMISSION & REALTIME QUEUE
+        // ==========================================
+        function openCollectModal(memberId) {
+            const member = members.find(m => m.id === memberId);
+            if (!member) return;
+
+            document.getElementById('collectMemberId').value = member.id;
+            document.getElementById('collectModalMemberName').innerText = member.name;
+            document.getElementById('collectModalPrevAmount').innerText = `₹${member.prevAmount}`;
+            document.getElementById('collectModalTargetAmount').innerText = `₹${member.targetAmount}`;
+            document.getElementById('collectInputAmount').value = member.dueAmount > 0 ? member.dueAmount : member.targetAmount;
+            document.getElementById('collectNotes').value = '';
+
+            document.getElementById('collectModal').classList.remove('hidden');
+        }
+
+        function closeCollectModal() {
+            document.getElementById('collectModal').classList.add('hidden');
+        }
+
+        function handleCollectionSubmit(e) {
+            e.preventDefault();
+            const memberId = document.getElementById('collectMemberId').value;
+            const amount = parseFloat(document.getElementById('collectInputAmount').value);
+            const notes = document.getElementById('collectNotes').value;
+            const methodEls = document.getElementsByName('paymentMethod');
+            let method = 'CASH';
+            for (let el of methodEls) { if (el.checked) method = el.value; }
+
+            const member = members.find(m => m.id === memberId);
+            if (!member) return;
+
+            const receiptNo = `BSKP-${config.currentFiscalYear}-${String(member.slNo).padStart(3, '0')}`;
+            const paymentDate = new Date().toISOString().slice(0, 10);
+
+            if (config.currentRole === 'ADMIN') {
+                member.paidAmount = amount;
+                member.dueAmount = Math.max(0, member.targetAmount - amount);
+                member.status = 'PAID';
+                member.receiptNo = receiptNo;
+                member.paymentMethod = method;
+                member.paymentDate = paymentDate;
+                showToast(`মেম্বার ${member.name}-এর চাঁদা ₹${amount} এপ্রুভ ও জমা হয়েছে!`);
+            } else {
+                const currentAgent = agents.find(a => a.id === config.currentRole) || { name: member.agentName, bookNo: member.bookNo };
+                pendingCollections.push({
+                    id: `REQ_${Date.now()}`,
+                    memberId: member.id,
+                    memberName: member.name,
+                    bookNo: currentAgent.bookNo,
+                    agentName: currentAgent.name,
+                    amount: amount,
+                    paymentMethod: method,
+                    receiptNo: receiptNo,
+                    paymentDate: paymentDate,
+                    notes: notes
+                });
+                showToast(`কালেকশন সাবমিট করা হয়েছে! ক্যাশিয়ারের অনুমোদনের জন্য অপেক্ষা করছে।`);
+            }
+
+            saveToLocalStorage();
+            closeCollectModal();
+            renderActiveViews();
+        }
+
+        // ==========================================
+        // 9. OFFICIAL RECEIPT SLIP POPUP
+        // ==========================================
+        let currentSlipMember = null;
+
+        function openReceiptSlipModal(memberId) {
+            const member = members.find(m => m.id === memberId);
+            if (!member) return;
+            currentSlipMember = member;
+
+            document.getElementById('slipFiscalHeader').innerText = `শ্রী শ্রী শ্যামাপূজা (কালীপূজা) ${config.currentFiscalYear}`;
+            document.getElementById('slipReceiptNo').innerText = member.receiptNo || `BSKP-${config.currentFiscalYear}-${member.slNo}`;
+            document.getElementById('slipDate').innerText = member.paymentDate || new Date().toISOString().slice(0, 10);
+            document.getElementById('slipMemberName').innerText = member.name;
+            document.getElementById('slipMemberMobile').innerText = member.phone || 'মোবাইল নেই';
+            document.getElementById('slipAgentAndBook').innerText = `${member.agentName} (${member.bookNo})`;
+            document.getElementById('slip2025Amount').innerText = `₹${member.prevAmount}`;
+            document.getElementById('slipPaidAmount').innerText = `₹${member.paidAmount || member.targetAmount}.00`;
+            document.getElementById('slipPaymentMethod').innerText = member.paymentMethod || 'CASH';
+
+            document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receiptModal').classList.add('hidden');
+        }
+
+        function shareReceiptWhatsApp() {
+            if (!currentSlipMember) return;
+            const text = `*বান্ধব সমিতি কালীপূজা ${config.currentFiscalYear} - অফিসিয়াল চাঁদা রসিদ*%0A%0A` +
+                `রসিদ নং: ${currentSlipMember.receiptNo || 'BSKP'}%0A` +
+                `সদস্যের নাম: ${currentSlipMember.name}%0A` +
+                `পরিশোধিত অর্থ: ₹${currentSlipMember.paidAmount || currentSlipMember.targetAmount}/-%0A` +
+                `সংগ্রাহক: ${currentSlipMember.agentName} (${currentSlipMember.bookNo})%0A` +
+                `তারিখ: ${currentSlipMember.paymentDate || 'আজ'}%0A%0A` +
+                `কালীপূজায় সহযোগিতার জন্য বান্ধব সমিতির পক্ষ থেকে আন্তরিক ধন্যবাদ।`;
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+
+        // ==========================================
+        // 10. ADD MEMBER & AGENT MODALS
+        // ==========================================
+        function openMemberModal() {
+            const selectEl = document.getElementById('newMemberAgentId');
+            selectEl.disabled = false;
+            selectEl.innerHTML = agents.map(ag => `<option value="${ag.id}">${ag.bookNo} — ${ag.name}</option>`).join('');
+            document.getElementById('newMemberName').value = '';
+            document.getElementById('newMemberPhone').value = '';
+            document.getElementById('newMember2025').value = '300';
+            document.getElementById('newMember2026').value = '300';
+            document.getElementById('memberModal').classList.remove('hidden');
+        }
+
+        function closeMemberModal() {
+            document.getElementById('memberModal').classList.add('hidden');
+        }
+
+        function handleSaveMember(e) {
+            e.preventDefault();
+            const name = document.getElementById('newMemberName').value.trim();
+            const phone = document.getElementById('newMemberPhone').value.trim();
+            const prev = parseFloat(document.getElementById('newMember2025').value) || 0;
+            const target = parseFloat(document.getElementById('newMember2026').value) || 300;
+            const agentId = document.getElementById('newMemberAgentId').value;
+            const agent = agents.find(a => a.id === agentId) || { name: 'Unassigned', bookNo: 'Book-01' };
+
+            const nextSl = members.length > 0 ? Math.max(...members.map(m => m.slNo || 0)) + 1 : 1;
+
+            members.push({
+                id: `M_${Date.now()}`,
+                slNo: nextSl,
+                name: name,
+                phone: phone,
+                agentId: agent.id,
+                bookNo: agent.bookNo,
+                agentName: agent.name,
+                prevAmount: prev,
+                targetAmount: target,
+                paidAmount: 0,
+                dueAmount: target,
+                status: 'DUE',
+                receiptNo: '',
+                paymentMethod: 'CASH',
+                paymentDate: ''
+            });
+
+            saveToLocalStorage();
+            closeMemberModal();
+            showToast(`মেম্বার "${name}" সফলভাবে অ্যালট করা হয়েছে!`);
+            renderActiveViews();
+        }
+
+        function openAgentModal() {
+            document.getElementById('newAgentName').value = '';
+            document.getElementById('newAgentPhone').value = '';
+            const nextBookNum = agents.length + 1;
+            document.getElementById('newAgentBookNo').value = `Book-${String(nextBookNum).padStart(2, '0')}`;
+            document.getElementById('newAgentPin').value = `agent${String(nextBookNum).padStart(2, '0')}`;
+            document.getElementById('agentModal').classList.remove('hidden');
+        }
+
+        function closeAgentModal() {
+            document.getElementById('agentModal').classList.add('hidden');
+        }
+
+        function handleSaveAgent(e) {
+            e.preventDefault();
+            const name = document.getElementById('newAgentName').value.trim();
+            const bookNo = document.getElementById('newAgentBookNo').value.trim();
+            const phone = document.getElementById('newAgentPhone').value.trim();
+            const pin = document.getElementById('newAgentPin').value.trim();
+
+            agents.push({
+                id: `agent_${Date.now()}`,
+                name: name,
+                bookNo: bookNo,
+                phone: phone,
+                pin: pin
+            });
+
+            saveToLocalStorage();
+            closeAgentModal();
+            populateGatewayAgents();
+            showToast(`নতুন এজেন্ট "${name}" তৈরি হয়েছে! পিন: ${pin}`);
+            renderActiveViews();
+        }
+
+        // ==========================================
+        // 11. EXCEL UPLOAD & DOWNLOAD HELPERS
+        // ==========================================
+        function handleExcelUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    let targetSheet = workbook.Sheets['FINAL MEMER LIST'] || workbook.Sheets[workbook.SheetNames[0]];
+                    const rawMembers = XLSX.utils.sheet_to_json(targetSheet);
+
+                    if (rawMembers.length === 0) {
+                        showToast("এক্সেলে কোনো মেম্বার পাওয়া যায়নি!");
+                        return;
+                    }
+
+                    members = rawMembers.map((r, idx) => {
+                        const targetAmt = Number(r[`AMOUNT-${config.currentFiscalYear}`] || r['AMOUNT-2026'] || 300);
+                        const prevAmt = Number(r[`AMOUNT-${config.currentFiscalYear - 1}`] || r['AMOUNT-2025'] || 300);
+                        const paid = Number(r['TOTAL PAYMENT '] || r['TOTAL PAYMENT'] || 0);
+                        const due = (r['DUE AMOUNT'] !== undefined) ? Number(r['DUE AMOUNT']) : Math.max(0, targetAmt - paid);
+                        const status = r['STATUS'] ? String(r['STATUS']).trim() : (due === 0 ? 'PAID' : 'DUE');
+
+                        const bookNo = String(r['BOOK NO'] || 'Book-01').trim();
+                        const agentName = String(r['AGENT NAME'] || 'Unknown').trim();
+                        const existingAgent = agents.find(a => a.bookNo === bookNo);
+                        const agentId = existingAgent ? existingAgent.id : `agent_${bookNo}`;
+
+                        return {
+                            id: `M_${idx + 1}`,
+                            slNo: Number(r['SL NO']) || (idx + 1),
+                            name: String(r['MEMBER NAME'] || '').trim(),
+                            phone: r['WHATSAPP NO'] ? String(r['WHATSAPP NO']).replace('.0', '').trim() : '',
+                            agentId: agentId,
+                            bookNo: bookNo,
+                            agentName: agentName,
+                            prevAmount: prevAmt,
+                            targetAmount: targetAmt,
+                            paidAmount: paid,
+                            dueAmount: due,
+                            status: status,
+                            receiptNo: r['RASHID NO'] ? String(r['RASHID NO']).trim() : '',
+                            paymentMethod: 'CASH',
+                            paymentDate: ''
+                        };
+                    });
+
+                    saveToLocalStorage();
+                    showToast(`সফলভাবে ${members.length} জন মেম্বার আপলোড সম্পন্ন হয়েছে!`);
+                    renderActiveViews();
+                } catch (err) {
+                    showToast("এক্সেল ফাইল রিড করতে সমস্যা হয়েছে: " + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function downloadSampleExcel() {
+            const sampleMembers = [
+                { "SL NO": 1, "MEMBER NAME": "AMAR MAHARA", "WHATSAPP NO": "9474409597", "RASHID NO": "", [`AMOUNT-${config.currentFiscalYear - 1}`]: 300, [`AMOUNT-${config.currentFiscalYear}`]: 300, "TOTAL PAYMENT ": 0, "DUE AMOUNT": 300, "STATUS": "DUE", "BOOK NO": "Book-01", "AGENT NAME": "ARNAB SADHU ( NIL )" },
+                { "SL NO": 2, "MEMBER NAME": "AMARNATH GHOSH", "WHATSAPP NO": "9064530334", "RASHID NO": "", [`AMOUNT-${config.currentFiscalYear - 1}`]: 700, [`AMOUNT-${config.currentFiscalYear}`]: 1000, "TOTAL PAYMENT ": 0, "DUE AMOUNT": 1000, "STATUS": "DUE", "BOOK NO": "Book-01", "AGENT NAME": "ARNAB SADHU ( NIL )" }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            const wsMem = XLSX.utils.json_to_sheet(sampleMembers);
+            XLSX.utils.book_append_sheet(wb, wsMem, "FINAL MEMER LIST");
+            XLSX.writeFile(wb, `SAMPLE_KALI_PUJA_${config.currentFiscalYear}_DATA.xlsx`);
+            showToast("স্যাম্পল এক্সেল ডাউনলোড হয়েছে!");
+        }
+
+        // ==========================================
+        // 12. CLOUD & PUBLISH GUIDE MODALS
+        // ==========================================
+        function openCloudModal() {
+            document.getElementById('inputFirebaseDbUrl').value = config.firebaseDbUrl || '';
+            document.getElementById('cloudModal').classList.remove('hidden');
+        }
+
+        function closeCloudModal() {
+            document.getElementById('cloudModal').classList.add('hidden');
+        }
+
+        function saveCloudConfig() {
+            config.firebaseDbUrl = document.getElementById('inputFirebaseDbUrl').value.trim();
+            saveToLocalStorage();
+            closeCloudModal();
+            showToast("ক্লাউড কনফিগারেশন সংরক্ষিত হয়েছে!");
+        }
+
+        function openPublishGuideModal() {
+            document.getElementById('publishGuideModal').classList.remove('hidden');
+        }
+
+        function closePublishGuideModal() {
+            document.getElementById('publishGuideModal').classList.add('hidden');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            msgEl.innerText = message;
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3000);
+        }
+
+        // Window Onload (Always prompts login gateway first)
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeSystemData();
+        });
+    </script>
+</body>
+</html>
