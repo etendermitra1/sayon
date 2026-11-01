@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>মেম্বার ও এজেন্ট সার্চ পোর্টাল</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 620px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            padding: 24px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 21px;
+            color: #0f172a;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 13.5px;
+            color: #64748b;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.2s ease-in-out;
+            background-color: #f8fafc;
+        }
+
+        .search-box input:focus {
+            border-color: #2563eb;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .count-badge {
+            font-size: 12.5px;
+            color: #64748b;
+            text-align: right;
+            margin-bottom: 14px;
+            padding-right: 4px;
+        }
+
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 540px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .results-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .results-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 6px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid #2563eb;
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            transition: transform 0.15s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-left-color: #1d4ed8;
+        }
+
+        .member-details {
+            flex: 1;
+        }
+
+        .member-name {
+            font-size: 15.5px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .agent-info {
+            font-size: 13.5px;
+            color: #475569;
+            line-height: 1.4;
+        }
+
+        .agent-label {
+            font-weight: 600;
+            color: #1e40af;
+        }
+
+        .action-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .btn-call {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background-color: #16a34a;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: background 0.2s;
+            box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
+        }
+
+        .btn-call:hover {
+            background-color: #15803d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 35px 15px;
+            color: #64748b;
+            font-size: 14.5px;
+            line-height: 1.6;
+        }
+
+        .highlight {
+            background-color: #fef08a;
+            color: #854d0e;
+            padding: 1px 3px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>চাঁদা সংগ্রহ ও এজেন্ট অনুসন্ধান</h1>
+        <p>আপনার নামের যেকোনো অংশ লিখে সার্চ করুন</p>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="মেম্বারের নাম বা পদবি লিখুন..." oninput="filterMembers()" autocomplete="off">
+    </div>
+    <div class="count-badge" id="countBadge">মোট ৩১৮ জন মেম্বার ডাটাবেসে রয়েছে</div>
+
+    <div class="results-container" id="resultsContainer">
+        <!-- Results will load here dynamically -->
+    </div>
+</div>
+
+<script>
+    // Complete 318 Members Data from Excel
+    const membersData = [
+        {"m": "AMAR MAHARA", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "AMARNATH GHOSH", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "AMIT BIKRAM RUJ ( BABU)", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "AMIT SAHA MONDAL", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "AMIYA BAURI", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "AMLAN BANERJEE", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ANANDA MONDAL", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ANANDA PATUA", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ANIMESH RUJ", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ANUP DAS ( DOMDOMA -SAHEB)", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ANUP DUTTA ( TOFI)", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ANUP KUMAR DUTTA", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ARCHANA MONDAL", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ARGHYA SAHA", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ARNAB SADHU ( NIL)", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "AROBINDA MONDAL", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ARPAN DAS", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ARUN MONDAL", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ARUP DAS", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ARUP PATRA", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ASHIT KUMAR GHOSH", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ASHOK SAHA MONDAL", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ASHOKE RANJAN SADHU", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ASISH KUMA SAMANTA", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ASIT DUTTA", "a": "ARNAB SADHU ( NIL )", "p": "9641831804"},
+        {"m": "ASIT MAHARA", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "AVIJIT DUTTA ( BITTU)", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "AVIJIT TANTI", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "AVISHEK RUJ", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "AVISHEK SAHA ( PONTA)", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BABLU SEN", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BADSHA BANERJEE", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BAPADITTA DAS", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BAPAN SAHA", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BAPI BAGDI", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BAPI DHIBAR", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BASAKI NATH GHOSH", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BIKASH CHANDRA SAHA", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BIKASH DAS", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BIKASH DUTTA", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BIMAL GHOSWAMI", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BIPLAB SADHU ( PINTU)", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BISWAJIT BAGDI", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BISWAJIT DAS ( MANGAL)", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BISWAJIT GHOSH ( SEKAMPUR)", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BISWAJIT PRAMANICK", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BISWANATH DEY", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BISWARUP DUTTA", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BIVABASU SAHA", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BRAJA BAGDI (ARMY)", "a": "PRADIP DAS", "p": "7047248745"},
+        {"m": "BUDDHADEB DHIBAR", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "BUDDHADEB RAJAK", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "BUDDHADEB SADHU", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "CHANDAN DAS", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "CHANDAN SAHA ( SAHEB)", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "CHANDRA KANTA SAHA", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "CHANDRA SHEKHAR SHARMA", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "CHANDRANARAYAN MUKHERJEE", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "CHERANJIT DUTTA( KALU)", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DAYAMAY CHANDRA", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DEBAJIT SADHU", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DEBASISH BITTAR", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DEBKANTA SEN", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DHUBRAJYOTI MONDAL", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DILIP KARMAKAR", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DINABANDHU SADHU ( PARTHA)", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DIPALI SADHU", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DIPANKAR CHOWDHURY", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DIPANKAR DEY", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DIPEN SADHU", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "DIPENDRANATH MONDAL", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "GANAPATI BAGDI ( LAKHU)", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "GIRIDHARI CHANDRA", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "GOPAL THAKUR", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "GOPI DHIBAR ( CIVIK )", "a": "SUBHADIP SEN", "p": "7585049781"},
+        {"m": "GOPINATH CHANDRA", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOPINATH DUTTA", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOPINATH MONDAL", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOPINATH SAHA MONDAL", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOPINATH THAKUR", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GORA CHAND DAS", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOUR BAGDI", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOUR DAS", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOURANGA SEN", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOUTAM DAS ( GULE)", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOUTAM MONDAL", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOUTAM SAHA MONDAL", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GOUTAM SAHA MONDAL( CHOTO)", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GURUDAS DAS (GANGTE)", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "GURUNARAYAN MUKHERJEE", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "HARICHARAN BITTAR", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "HARINARAYAN SADHU", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "HEMTARAN KARMAKAR", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "HIMACHAL DEY", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "HOSEN PATUA", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "JAGANANDA SAHA", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "JAGAT NARAYAN MUKHERJE ( SAJINA)", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "JATAN BHANDARI", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "JAYANTA DUTTA", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "JAYDEB BHATTACHRIYA ( BEHIRA)", "a": "NAYAN PATUA", "p": "9382012923"},
+        {"m": "JAYDEB DHIBAR", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "JAYRAM MAHARA", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "JHUMA HALDAR", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "JIBAN DHIBAR", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "JIT MONDAL", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KALYAN BANERJEE", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KALYAN MONDAL", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KALYAN SADHU", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KANCHAN BISWAS", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KANCHAN SADHU", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KANCHAN SAHA MONDAL", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KAPIL CHANDRA", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KARTICK BAGDI ( SAJINA)", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KATRICK DHIBAR ( KHEPU)", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KAUSHIK DUTTA ( LALTU)", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KESHAB DAS ( FAL)", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KIRAN BHANDARI", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KISHAN DAS", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KOUSHIK DUTTA ( NOKIA)", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KOUSHIK SAHA", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KRISHNA CHANDRA DUTTA", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KRISHNA DAS", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "KUSHIK DUTTA ( BAPAN)", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "LALU MAHARA", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "MADAN MOHAN CHANDRA", "a": "SUBHAM SADHU", "p": "8159080667"},
+        {"m": "MADHAB KUMAR DAS", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MADHUSUDHAN CHANDRA", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MAHASIN PATUA", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MANABENDRA MONDAL ( GOBINDA DA)", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MANIK CHANDRA DHIBAR", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MD RAFIK ( BARA BABU)", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MD SAFIK ( CHATO BABU)", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MEGHNATH SAHA", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MIHIR DAS ( BEHIRA)", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MILAN DAS", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MILAN MAHARA", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MILAN KUMAR CHANDRA ( NEPAL)", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MOHITOSH SAHA ( BABUSONA)", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MONAJ MONDAL", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MRINAL KANTI SAHA", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "MUKUL SAHA MONDAL", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "NANI GOPAL SAHA MONDAL", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "NARENDRA NARAYAN SADHU ( MALAY)", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "NAROTTOM SWARNAKAR", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "NAYAN PATUA ( SAMIR)", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "NEMAI DUTTA", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "NETAI BAGDI", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "NITYA GOPAL KARMAKAR", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "PALASH SAHA ( SIBU)", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "PANKAJ KUMAR SADHU", "a": "SUDIP BHANDARI", "p": "8001351173"},
+        {"m": "PARADHIN MAHARA", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PARESH DEY", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PARTHA SARATHI KARMAKAR", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PARTHA SARATHI SADHU ( BIG)", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PINTU DAS", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRABHAKAR DAS", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRABHAT BAGDI ( KATU)", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRABIR DEY", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRABIR GHOSH", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRABIR SAHA MONDA ( KANAI)", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRADIP BOSE", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRADIP DAS", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRADIP PAL ( RAJU)", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRAKASH DUTTA", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRAMOD GHOSWAMI", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRANAB MONDAL ( CONSIDER )", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRASANTA BHARATI", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRASANTA DAS", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRASENJIT BAGDI ( BUBAI)", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRASENJIT DUTTA ( GOBINDA)", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRASENJIT SAHA ( SIJU)", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRASOON CHOUDHARI ( BAKUL)", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRATICK DAS ( BUMBA)", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PREMANANDA BAGDI", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRITAM DUTTA", "a": "SOUDIP DAS/ SURJA SADHU", "p": "7001325549/7602758078"},
+        {"m": "PRITHIRAJ KARMAKAR", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "PRIYANATH PRAMANIK", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "PRIYANKU SAKAR", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RABINDRANATH DAS", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RABINDRANATH PAL", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RABINDRANATH SEN", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RAJKAMAL SADHU", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RAJKUMAR BHARATI", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RAJKUMAR GHOSAL", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RAJKUMAR SAHA", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RAJKUMAR SAHA MONDAL", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RAJU MUKHERJEE ( IMADPUR)", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RAKESH DAS ( TINKU)", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RAKRISHNA MONDAL", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RAMMAY SAHA", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RANA MONDAL( 400)", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RANJAN RAJAK", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RANJIT BAGDI", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RANJIT DUTTA ( JAMAI )", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RANJIT MONDAL (DEATH)", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RATAN DAS", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "REBOTI MOHAN MONDAL", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "REJAUL KHA ( JANGLA)", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RIKTAVA SAHA ( SHYAM)", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RONI DAS", "a": "SOUVIK DUTTA", "p": "6294758939"},
+        {"m": "RUPAI TUDU", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "RUPKUMAR SAHA MONDAL", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "RUPNATH DUTTA", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SABYASACHI CHANDRA", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SADHAN MONDAL", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SADHAN SAHA", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SADHU GOPAL MONDAL", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SAGARNIL CHAKRABORTY", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SAHADEB DHIBAR", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SAHEB MONDAL", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SAKSHI GOPAL CHANDRA", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SALAM PATUA", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SAMAR SAHA", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SAMAR SWARNAKAR( GONSAI)", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SAMRAT BANERJEE", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANATAN BAGDI", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANDIP BOSE", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANDIP MONDAL", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANDIP SADHU", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANDIP SAHA", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANGRAM DUTTA", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANJAY SADHU", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANJAY SEN ( MADHU)", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANJIB GHOSH", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANJIB SADHU ( CHINTU)", "a": "PRITHAAIRAJ KARMAKAR & SHIBU BITTAR", "p": "7001507114/ 9614663888"},
+        {"m": "SANJIB SEN ( TUTO)", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SANTANU DUTTA", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SANTANU SEN", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SANTANU SINGHA", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SAPTASRI SAHA ( SANKHA)", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SARBENDU MUKHERJEE ( PINTU)", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SARTHA BAGDI", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SAYAN CHANDRA", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SAYANTAN DAS ", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SAYANTAN DUTTA", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SAYKAT MONDAL", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SHIBANI MONDAL", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SHIBNATH SAHA", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SHOYED ABDUL HANSAD( DULAL)", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SHYAMAL MONDAL", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SHYAMAL RAJAK ( SAMU)", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SHYAMAPADA SAHA", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SIBDAS BHANDARI", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SIBNATH DAS", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SK AJAD", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SK ASRAF", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SK ILIYAS ( MANTU)", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SK SADDAM", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SK SARIFUL ( HIRU )", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SOMNATH BAGDI", "a": "BISWAJIT PRAMANICK", "p": "9641629177"},
+        {"m": "SOUDIP DAS", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SOUGATA CHANDRA", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SOUPARNA DUTTA ( DIBYA)", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SOURAV DAS", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SOUTIK SAHA", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SOUVIK DUTTA", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SOUVIK MONDAL", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SREYASWI  BHANDARI", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SRIDHARTHA SADHU", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SRIKANTA DAS ( HABU)", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SRIKANTA RAJAK ( SIKHA)", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SRIMANTA DUTTA", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBAL BAGDI", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBASH DUTTA", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBASH MONDAL ( FAL)", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBASH SAHA ( MANIK)", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBHADEEP SEN", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBHAJIT DUTTA", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBHAM DAS ( RIJU)", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBHAM SADHU", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBHASISH DOME", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBHENDU CHAKRABORTY", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBHENDU MONDAL", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBIMAL DEY ( DUSTU)", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBIR SAHA ", "a": "MEGNATH SAHA", "p": "8999640319"},
+        {"m": "SUBRATA CHAKROBORTTY", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUDHIN BANERJEE", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUDHIR GARAI", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUDIP BHANDARI( MANI)", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUDIP PAL", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUDIPTA SADHU", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUDRASHAN CHANDRA", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUJAN MONDAL", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUJIT DAS ( GONSAI )", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUKANTA  MONDAL ( KAJAL)", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUKUMAR MAHARA", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUMAN BANERJEE", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUMAN KAHAR ( CIVIK )", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUMAN SADHU ( VONA)", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUMAN SAHA", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUMANTA MONDAL", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUMANTA MONDAL", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SURAJIT SADHU ( CIVIK )", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SURYA SADHU", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SURYASISH MUKHERJEE", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUSHIL HEMBERAM ( CIVIK )", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUSMIT ASAHA", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SUSMIT BANERJEE", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SWADHIN DUTTA ( PANU)", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SWAPAN SAHA", "a": "ARPON DAS", "p": "9064329720"},
+        {"m": "SWARUP DUTTA", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TANAY DUTTA", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TANMAY  DUTTA", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TANMAY SADHU", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TANMOY DAS", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TAPAS KUMAR DUTTA", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TAPAS KUMAR SAHA MONDAL", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TARUN KANTI GHOSH", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TRINATH DHIBAR", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TUHIN RUJ", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TUSHAR KANTI DUTTA ( BURO)", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "TUSHAR SINGHA", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "UDAY CHAKRABORTTY", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "UDAY KUMAR NATH", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "UTAPL MONDAL", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "UTPAL DAS", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "UTPAL DAS ( RAIL)", "a": "RANA MONDAL", "p": "8884039470"},
+        {"m": "UTTAM SWARNAKAR", "a": "RANA MONDAL", "p": "8884039470"}
+    ];
+
+    function filterMembers() {
+        const rawInput = document.getElementById('searchInput').value;
+        const query = rawInput.trim().toLowerCase();
+        const container = document.getElementById('resultsContainer');
+        const badge = document.getElementById('countBadge');
+
+        container.innerHTML = '';
+
+        // Check if query length is at least 2 characters
+        if (query.length < 2) {
+            badge.innerText = 'কমপক্ষে ২টি অক্ষর লিখুন...';
+            return;
+        }
+
+        // Split query into words to support multi-word search (e.g. "amit ruj")
+        const keywords = query.split(/\s+/).filter(w => w.length > 0);
+
+        const filtered = membersData.filter(item => {
+            const memberName = item.m.toLowerCase();
+            // All typed words must be present in the member name
+            return keywords.every(kw => memberName.includes(kw));
+        });
+
+        badge.innerText = `পাওয়া গেছে: ${filtered.length} জন`;
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <strong>"${rawInput}"</strong> নামে কাউকে পাওয়া যায়নি।<br>
+                    অনুগ্রহ করে নামের বানানটি চেক করুন (ইংরেজিতে লিখুন)।
+                </div>
+            `;
+            return;
+        }
+
+        // Render Cards
+        filtered.forEach(item => {
+            let highlightedName = item.m;
+            keywords.forEach(kw => {
+                const regex = new RegExp(`(${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                highlightedName = highlightedName.replace(regex, '<span class="highlight">$1</span>');
+            });
+
+            // Call buttons logic
+            let callButtonsHtml = '';
+            const phoneNumbers = item.p.split('/').map(p => p.trim());
+            phoneNumbers.forEach(num => {
+                const cleanNum = num.replace(/\D/g, '');
+                callButtonsHtml += `
+                    <a href="tel:${cleanNum}" class="btn-call">
+                        📞 কল (${num})
+                    </a>
+                `;
+            });
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="member-details">
+                    <div class="member-name">${highlightedName}</div>
+                    <div class="agent-info">দায়িত্বপ্রাপ্ত এজেন্ট: <span class="agent-label">${item.a}</span></div>
+                </div>
+                <div class="action-btns">
+                    ${callButtonsHtml}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+</script>
+
+</body>
+</html>
